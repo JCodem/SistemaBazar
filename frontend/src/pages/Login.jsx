@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
 
+
+
 function Login() {
   const [correo, setCorreo] = useState('');
   const [contraseña, setContraseña] = useState('');
@@ -17,19 +19,19 @@ function Login() {
       localStorage.setItem('token', token);
       localStorage.setItem('rol', rol);
 
-      if (rol === 'jefe') navigate('/jefe');
-      else if (rol === 'vendedor') navigate('/vendedor');
+      if (rol === 'jefe') navigate('/dashboard');
+      else if (rol === 'vendedor') navigate('/dashboard');;
     } catch (err) {
       setError('Credenciales inválidas');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <form
         onSubmit={handleLogin}
-        className="bg-white shadow-lg rounded-xl px-10 py-8 w-full max-w-md"
-      >
+        className="bg-white shadow-lg rounded-xl px-10 py-8 w-full max-w-md">
+            <img src="/logoTec.png" alt="Logo del sistema" className="w-24 h-auto mx-auto mb-6"/>
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Iniciar Sesión</h2>
 
         <label className="block mb-2 text-sm text-gray-700">Correo</label>
@@ -58,7 +60,7 @@ function Login() {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+          className="w-full  bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
         >
           Ingresar
         </button>
