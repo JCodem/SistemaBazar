@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-function verificarToken(req, res, next) {
+export function verificarToken(req, res, next) {
   const token = req.headers['authorization'];
 
   if (!token) {
@@ -16,7 +16,7 @@ function verificarToken(req, res, next) {
   }
 }
 
-function verificarRol(rolRequerido) {
+export function verificarRol(rolRequerido) {
   return (req, res, next) => {
     if (req.user.rol !== rolRequerido) {
       return res.status(403).json({ error: 'Acceso denegado: rol insuficiente' });
@@ -24,5 +24,3 @@ function verificarRol(rolRequerido) {
     next();
   };
 }
-
-module.exports = { verificarToken, verificarRol };

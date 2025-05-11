@@ -5,7 +5,7 @@ import db from "../models/index.js";
 
 const router = express.Router();
 const { User } = db;
-
+  
 // Registro
 router.post("/register", async (req, res) => {
   const { nombre, correo, contraseña, rol } = req.body;
@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ error: "Error al registrar usuario", detalle: err.message });
   }
 });
-
+ 
 // Login
 router.post("/login", async (req, res) => {
   const { correo, contraseña } = req.body;
