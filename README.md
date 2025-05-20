@@ -9,7 +9,7 @@ Este es un panel de administración desarrollado en React, diseñado para permit
 
 ## Vista actual del sistema 📸
 
-![Vista previa del panel](./img/panel-jefe-preview.png)
+![Vista previa del panel](./img/panel-jefe-preview.png.png)
 
 ---
 
