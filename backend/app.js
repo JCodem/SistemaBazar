@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.js";
 import sequelize from "./config/database.js";
 import rutasProtegidas from "./routes/protegido.js";
 import productosRouter from "./routes/productos.js";
+import diaRoutes from './routes/dia.js';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use("/api/protegido", rutasProtegidas);
 app.use("/api/productos", productosRouter);
 app.use("/api/auth", authRoutes);
+app.use('/api/dia', diaRoutes);
 // Ruta raíz de prueba
 app.get("/", (req, res) => {
   res.send("¡API funcionando, LETSGOOOOO!");
