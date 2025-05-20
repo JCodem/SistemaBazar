@@ -52,13 +52,9 @@ export default function Productos() {
     };
 
     return (
-
-    
-        
         <div>
-            <h1 className="text-xl font-bold mb-4">Gestión de Productos</h1>
-
-            <div className="mb-4">
+            <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-900 p-4 rounded-xl shadow-md">
+                <h2 className="text-lg font-bold mb-2 text-gray-800 dark:text-white">Gestión de Productos</h2>
                 <input
                     type="text"
                     placeholder="Buscar por nombre o código..."
@@ -67,33 +63,33 @@ export default function Productos() {
                     className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
                 />
             </div>
-            
 
-       {rol === "jefe" && <FormularioProducto />} 
-
-            <table className="min-w-full bg-white dark:bg-gray-800 text-sm">
-                <thead>
-                    <tr className="bg-gray-200 dark:bg-gray-700 text-left">
-                        <th className="p-2">#</th>
-                        <th className="p-2">Nombre</th>
-                        <th className="p-2">Código</th>
-                        <th className="p-2">Valor</th>
-                        <th className="p-2">Descripción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {productos.map((prod, index) => (
-                        <tr key={prod.id} className="border-t dark:border-gray-700">
-                            <td className="p-2">{index + 1}</td>
-                            <td className="p-2">{prod.nombre}</td>
-                            <td className="p-2">{prod.codigo}</td>
-                            <td className="p-2">${prod.valor}</td>
-                            <td className="p-2">{prod.descripcion}</td>
+            <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg mt-6">
+                <table className="min-w-full text-sm">
+                    <thead>
+                        <tr className="bg-gray-200 dark:bg-gray-700 text-left">
+                            <th className="p-2">#</th>
+                            <th className="p-2">Nombre</th>
+                            <th className="p-2">Código</th>
+                            <th className="p-2">Valor</th>
+                            <th className="p-2">Descripción</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-            
+                    </thead>
+                    <tbody>
+                        {productos.map((prod, index) => (
+                            <tr key={prod.id} className="border-t dark:border-gray-700">
+                                <td className="p-2">{index + 1}</td>
+                                <td className="p-2">{prod.nombre}</td>
+                                <td className="p-2">{prod.codigo}</td>
+                                <td className="p-2">${prod.valor}</td>
+                                <td className="p-2">{prod.descripcion}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+
         </div>
     );
 }

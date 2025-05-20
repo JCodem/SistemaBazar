@@ -33,7 +33,7 @@ export default function GestionDia() {
   if (rol !== "jefe") return null;
 
 return (
-  <div className="max-w-md mx-auto bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg mt-10">
+<div className="w-full max-w-xs bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg">
     <h2 className="text-2xl font-bold mb-4 text-center text-gray-800 dark:text-white">
       Gestión del Día
     </h2>
@@ -67,4 +67,5 @@ return (
     )}
   </div>
 );
+
 }

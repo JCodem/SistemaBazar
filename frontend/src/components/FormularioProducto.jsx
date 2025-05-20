@@ -58,6 +58,15 @@ export default function FormularioProducto() {
           className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           required
         />
+         <input
+          type="text"
+          name="descripcion"
+          value={formulario.descripcion}
+          onChange={handleChange}
+          placeholder="Descripción del producto"
+          className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          required
+        />
         <button
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
