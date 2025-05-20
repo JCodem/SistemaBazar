@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import FormularioProducto from "../components/FormularioProducto"; // ajusta la ruta si está en otro directorio
+
 
 export default function Productos() {
     const [productos, setProductos] = useState([]);
@@ -50,6 +52,9 @@ export default function Productos() {
     };
 
     return (
+
+    
+        
         <div>
             <h1 className="text-xl font-bold mb-4">Gestión de Productos</h1>
 
@@ -62,20 +67,9 @@ export default function Productos() {
                     className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
                 />
             </div>
+            
 
-            {rol === "jefe" && (
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-4 mb-6 rounded shadow-md space-y-3">
-                    <div className="flex flex-col gap-2">
-                        <input name="nombre" placeholder="Nombre" value={formulario.nombre} onChange={handleChange} className="input" />
-                        <input name="codigo" placeholder="Código" value={formulario.codigo} onChange={handleChange} className="input" />
-                        <input name="valor" placeholder="Valor" type="number" value={formulario.valor} onChange={handleChange} className="input" />
-                        <textarea name="descripcion" placeholder="Descripción" value={formulario.descripcion} onChange={handleChange} className="input" />
-                    </div>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-4 rounded">
-                        Agregar Producto
-                    </button>
-                </form>
-            )}
+       {rol === "jefe" && <FormularioProducto />} 
 
             <table className="min-w-full bg-white dark:bg-gray-800 text-sm">
                 <thead>
@@ -99,6 +93,7 @@ export default function Productos() {
                     ))}
                 </tbody>
             </table>
+            
         </div>
     );
 }
