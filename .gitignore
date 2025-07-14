@@ -1,2 +1,12 @@
-node_modules/
+# Archivos de configuración sensibles
+includes/db.php
+
+# Archivos de entorno si usas más adelante
 .env
+
+# Archivos del sistema / temporales
+*.log
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
