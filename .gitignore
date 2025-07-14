@@ -1,6 +1,9 @@
 # Archivos de configuración sensibles
 includes/db.php
+includes/query.sql
 
+# Insertar usuario.
+public_html/insert_user.php
 # Archivos de entorno si usas más adelante
 .env
 
