@@ -1,9 +1,6 @@
 <?php
-session_start();
-if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'jefe') {
-    header('Location: ../login.php');
-    exit;
-}
+require_once '../../includes/auth_middleware.php';
+require_once '../../includes/rol_middleware.php';
 ?>
 
 <!DOCTYPE html>
