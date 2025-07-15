@@ -18,6 +18,17 @@ session_start();
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
     <?php endif; ?>
+    
+    <?php if (isset($_SESSION['mensaje'])): ?>
+        <div class="alert alert-info"><?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?></div>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['debug_info']) && isset($_GET['debug'])): ?>
+        <div class="alert alert-warning">
+            <h5>Información de depuración:</h5>
+            <pre><?php print_r($_SESSION['debug_info']); unset($_SESSION['debug_info']); ?></pre>
+        </div>
+    <?php endif; ?>
 
     <form action="auth.php" method="POST">
         <div class="mb-3">

@@ -8,37 +8,34 @@ error_reporting(E_ALL);
 
 // Capturar los datos del formulario
 $correo = $_POST['correo'] ?? '';
-$contraseña = $_POST['contraseña'] ?? '';
+$contrasena = $_POST['contrasena'] ?? '';
 $nombre = $_POST['nombre'] ?? '';
 $rut = $_POST['rut'] ?? '';
 $rol = $_POST['rol'] ?? '';
 
 try {
     // Verifica si ya existe el correo
-    $verificar = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
-    $verificar->bindParam(':correo', $correo);
+    $verificar = $conn->prepare("SELECT * FROM usuarios WHERE correo = ? LIMIT 1");
+    $verificar->bind_param("s", $correo);
     $verificar->execute();
+    $resultado = $verificar->get_result();
 
-    if ($verificar->fetch(PDO::FETCH_ASSOC)) {
+    if ($resultado->fetch_assoc()) {
         $_SESSION['registro_error'] = "Ese correo ya está registrado.";
         header('Location: register.php');
         exit;
     }
 
     // Hash de la contraseña
-    $hash = password_hash($contraseña, PASSWORD_DEFAULT);
+    $hash = password_hash($contrasena, PASSWORD_DEFAULT);
 
     // Inserta el nuevo usuario
     $stmt = $conn->prepare("
-        INSERT INTO usuarios (correo, contraseña, nombre, rut, rol, created_at, updated_at)
-        VALUES (:correo, :contrasena, :nombre, :rut, :rol, NOW(), NOW())
+        INSERT INTO usuarios (correo, contrasena, nombre, rut, rol, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
     ");
 
-    $stmt->bindParam(':correo', $correo);
-    $stmt->bindParam(':contrasena', $hash); // usa :contrasena (no :contraseña por compatibilidad)
-    $stmt->bindParam(':nombre', $nombre);
-    $stmt->bindParam(':rut', $rut);
-    $stmt->bindParam(':rol', $rol);
+    $stmt->bind_param("sssss", $correo, $hash, $nombre, $rut, $rol);
 
     $stmt->execute();
 
@@ -46,7 +43,7 @@ try {
     header('Location: register.php');
     exit;
 
-} catch (PDOException $e) {
+} catch (Exception $e) {
     $_SESSION['registro_error'] = "Error: " . $e->getMessage();
     header('Location: register.php');
     exit;
