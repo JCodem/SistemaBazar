@@ -18,7 +18,7 @@ try {
         if ($usuario['rol'] === 'jefe') {
             header('Location: admin/dashboard.php');
         } else {
-            header('Location: vendedor/venta.php');
+            header('Location: vendedor/dashboard.php');
         }
         exit;
     } else {

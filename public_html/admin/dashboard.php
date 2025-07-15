@@ -1,24 +1,27 @@
-<?php
-require_once '../../includes/auth_middleware.php';
-require_once '../../includes/rol_middleware.php';
-?>
+<?php require_once '../../includes/layout_admin.php'; ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel de Jefe de Ventas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+<h2>¡Bienvenido, <?= htmlspecialchars($_SESSION['usuario']['nombre']) ?>!</h2>
+<p class="mb-4">Este es tu <strong>panel de administrador</strong>.</p>
 
-<div class="container mt-5">
-    <h2 class="text-center">¡Bienvenido, <?= $_SESSION['usuario']['nombre'] ?? 'Jefe' ?>!</h2>
-    <p class="text-center">Estás en el <strong>panel del jefe de ventas</strong>.</p>
-    <div class="text-center mt-4">
-        <a href="../logout.php" class="btn btn-danger">Cerrar sesión</a>
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-3 bg-white">
+            <h5>Total Ventas Hoy</h5>
+            <p>$0.00</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-3 bg-white">
+            <h5>Vendedores Activos</h5>
+            <p>0</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-3 bg-white">
+            <h5>Productos en Stock</h5>
+            <p>0</p>
+        </div>
     </div>
 </div>
 
-</body>
-</html>
+
