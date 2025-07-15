@@ -6,11 +6,23 @@ include '../../includes/layout_vendedor.php';
 ?>
 
 <h2 class="mb-4">Panel del Vendedor</h2>
+
+<?php if (isset($_SESSION['mensaje'])): ?>
+  <div class="alert alert-success">
+    <?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?>
+  </div>
+<?php endif; ?>
+
+<?php if (isset($_SESSION['error'])): ?>
+  <div class="alert alert-danger">
+    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+  </div>
+<?php endif; ?>
 <p class="mb-4">Aquí puedes gestionar tus ventas y revisar tu información.</p>
 
 <div class="row g-4">
   <div class="col-md-6 col-lg-4">
-    <a href="registrar_venta.php" class="text-decoration-none text-dark">
+    <a href="venta.php" class="text-decoration-none text-dark">
       <div class="card p-3 h-100">
         <h5 class="card-title">📝 Registrar Venta</h5>
         <p class="card-text">Agregar una nueva venta al sistema.</p>
