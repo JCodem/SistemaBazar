@@ -1,9 +1,10 @@
 <?php
-require_once 'auth_middleware.php';
-require_once 'rol_middleware.php';
+session_start();
+require_once __DIR__ . '/auth_middleware.php';
+require_once __DIR__ . '/rol_middleware.php';
 
-if ($_SESSION['usuario']['rol'] !== 'jefe') {
-    header('Location: ../login.php');
+if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'jefe') {
+    header('Location: ../admin/dashboard.php');
     exit;
 }
 ?>
@@ -74,7 +75,7 @@ if ($_SESSION['usuario']['rol'] !== 'jefe') {
 
 <div class="sidebar">
     <h4 class="text-center">👑 Admin</h4>
-    <a href="../admin/dashboard.php">🏠 Inicio</a>
+    <a href="dashboard.php">🏠 Inicio</a>
     <a href="../admin/productos.php">📦 Gestión de productos</a>
     <a href="../admin/ventas.php">🧾 Registro de ventas</a>
     <a href="../admin/informes.php">📈 Informes por día</a>

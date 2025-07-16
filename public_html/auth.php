@@ -3,7 +3,7 @@ session_start();
 require_once '../includes/db.php';
 
 $correo = $_POST['correo'] ?? '';
-$contraseña = $_POST['contraseña'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
+$contraseña = $_POST['contrasena'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
 try {
 
@@ -36,10 +36,10 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         // Redireccionar según el rol - Usar rutas relativas
         if ($usuario['rol'] === 'jefe' || $usuario['rol'] === 'admin') {
             $_SESSION['mensaje'] = "Redirigiendo a admin...";
-            header('Location: ./admin/dashboard.php');
+            header('Location: admin/dashboard.php');
         } else {
             $_SESSION['mensaje'] = "Redirigiendo a vendedor...";
-            header('Location: ./vendedor/dashboard.php');
+            header('Location: vendedor/dashboard.php');
         }
         exit;
     } else {
