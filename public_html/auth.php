@@ -6,11 +6,11 @@ $correo = $_POST['correo'] ?? '';
 $contraseña = $_POST['contraseña'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
 try {
-    $query = $conn->prepare("SELECT * FROM usuarios WHERE correo = ? LIMIT 1");
-    $query->bind_param("s", $correo);
-    $query->execute();
-    $resultado = $query->get_result();
-    $usuario = $resultado->fetch_assoc();
+
+// Usar PDO con parámetros nombrados
+$stmt = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
+$stmt->execute([':correo' => $correo]);
+$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Agregar depuración para ver qué está fallando
     if (!$usuario) {
@@ -33,13 +33,13 @@ try {
         $_SESSION['user_nombre'] = $usuario['nombre'];
         $_SESSION['user_rol'] = $usuario['rol'];
 
-        // Redireccionar según el rol - Usar rutas absolutas
+        // Redireccionar según el rol - Usar rutas relativas
         if ($usuario['rol'] === 'jefe' || $usuario['rol'] === 'admin') {
             $_SESSION['mensaje'] = "Redirigiendo a admin...";
-            header('Location: admin/dashboard.php');
+            header('Location: ./admin/dashboard.php');
         } else {
             $_SESSION['mensaje'] = "Redirigiendo a vendedor...";
-            header('Location: vendedor/dashboard.php');
+            header('Location: ./vendedor/dashboard.php');
         }
         exit;
     } else {

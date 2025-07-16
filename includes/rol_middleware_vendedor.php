@@ -4,6 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'vendedor') {
-    header('Location: /public_html/login.php?error=acceso_no_autorizado');
+    header('Location: ../public_html/login.php?error=acceso_no_autorizado');
     exit;
 }

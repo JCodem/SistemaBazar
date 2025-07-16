@@ -10,16 +10,18 @@ class POSTransaction {
     
     public function save($items, $paymentMethod, $total) {
         try {
-            $this->db->begin_transaction();
+            $this->db->beginTransaction();
             
             // Insertar la transacción principal
             $stmt = $this->db->prepare("INSERT INTO ventas (fecha, total, metodo_pago, id_usuario) 
-                                       VALUES (NOW(), ?, ?, ?)");
-            $userId = $_SESSION['user_id'] ?? 1; // Obtener ID de usuario actual
-            $stmt->bind_param("dsi", $total, $paymentMethod, $userId);
-            $stmt->execute();
-            
-            $transactionId = $this->db->insert_id;
+                                       VALUES (NOW(), :total, :metodo_pago, :id_usuario)");
+            $userId = $_SESSION['user_id'] ?? 1;
+            $stmt->execute([
+                ':total' => $total,
+                ':metodo_pago' => $paymentMethod,
+                ':id_usuario' => $userId
+            ]);
+            $transactionId = $this->db->lastInsertId();
             
             // Insertar los ítems de la venta
             foreach ($items as $item) {
@@ -43,32 +45,26 @@ class POSTransaction {
         $stmt = $this->db->prepare("SELECT v.*, u.nombre as vendedor
                                     FROM ventas v
                                     JOIN usuarios u ON v.id_usuario = u.id
-                                    WHERE v.id = ?");
-        $stmt->bind_param("i", $transactionId);
-        $stmt->execute();
-        $transaction = $stmt->get_result()->fetch_assoc();
+                                    WHERE v.id = :id");
+        $stmt->execute([':id' => $transactionId]);
+        $transaction = $stmt->fetch(\PDO::FETCH_ASSOC);
         
         // Obtener los ítems
         $stmt = $this->db->prepare("SELECT d.*, p.nombre 
                                     FROM detalle_venta d
                                     JOIN productos p ON d.id_producto = p.id
-                                    WHERE d.id_venta = ?");
-        $stmt->bind_param("i", $transactionId);
-        $stmt->execute();
-        $items = [];
-        $result = $stmt->get_result();
-        
-        while ($row = $result->fetch_assoc()) {
-            $items[] = $row;
-        }
-        
+                                    WHERE d.id_venta = :id_venta");
+        $stmt->execute([':id_venta' => $transactionId]);
+        $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         $transaction['items'] = $items;
         return $transaction;
     }
     
     private function updateStock($productId, $quantity) {
-        $stmt = $this->db->prepare("UPDATE productos SET stock = stock - ? WHERE id = ?");
-        $stmt->bind_param("ii", $quantity, $productId);
-        $stmt->execute();
+        $stmt = $this->db->prepare("UPDATE productos SET stock = stock - :cantidad WHERE id = :id");
+        $stmt->execute([
+            ':cantidad' => $quantity,
+            ':id' => $productId
+        ]);
     }
 }

@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /SistemaBazar/public_html/login.php');
+    header('Location: ../../../public_html/login.php');
     exit;
 }
 
@@ -27,7 +27,7 @@ if (isset($_SESSION['user_nombre'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/SistemaBazar/modules/pos/assets/css/pos.css">
+  <link rel="stylesheet" href="../assets/css/pos.css">
   <style>
     body {
       min-height: 100vh;
@@ -59,10 +59,10 @@ if (isset($_SESSION['user_nombre'])) {
       <span class="text-light me-3">
         <i class="bi bi-person-circle"></i> <?= $nombre ?>
       </span>
-      <a href="/SistemaBazar/public_html/vendedor/dashboard.php" class="btn btn-outline-light btn-sm me-2">
+      <a href="../../../public_html/vendedor/dashboard.php" class="btn btn-outline-light btn-sm me-2">
         <i class="bi bi-house"></i> Panel
       </a>
-      <a href="/SistemaBazar/public_html/logout.php" class="btn btn-outline-danger btn-sm">
+      <a href="../../../public_html/logout.php" class="btn btn-outline-danger btn-sm">
         <i class="bi bi-box-arrow-right"></i> Salir
       </a>
     </div>
@@ -108,8 +108,8 @@ if (isset($_SESSION['user_nombre'])) {
 <!-- Scripts JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/SistemaBazar/modules/pos/assets/js/pos.js"></script>
-<script src="/SistemaBazar/modules/pos/assets/js/payment-handler.js"></script>
+<script src="../assets/js/pos.js"></script>
+<script src="../assets/js/payment-handler.js"></script>
 
 <footer class="bg-dark text-white text-center py-2 mt-5">
   <div class="container">

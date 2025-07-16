@@ -3,7 +3,7 @@ session_start();
 
 // Verificar autenticación - compatibilidad con ambos formatos de sesión
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['usuario'])) {
-    header('Location: ../../public_html/login.php');
+    header('Location: ../../public_html/login.php'); // Ya es relativa, pero se mantiene la estructura de carpetas
     exit;
 }
 
@@ -22,7 +22,7 @@ if (isset($_SESSION['user_rol'])) {
 }
 
 if (!$tieneAcceso) {
-    header('Location: ../../public_html/login.php?error=acceso_no_autorizado');
+    header('Location: ../../public_html/login.php?error=acceso_no_autorizado'); // Ya es relativa
     exit;
 }
 
