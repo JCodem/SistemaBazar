@@ -120,7 +120,467 @@ try {
 }
 ?>
 
-<div class="container-fluid">
+<style>
+/* Estilo global para eliminar fondos blancos */
+body, html {
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f0f 100%) !important;
+}
+
+/* Eliminar TODOS los fondos blancos */
+.bg-white, .bg-light, .table-responsive, .card-body {
+    background: rgba(15, 15, 25, 0.8) !important;
+}
+
+/* Estilo minimalista matching con login y dashboard */
+.main-content {
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f0f 100%) !important;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Estrellas de fondo para inventario */
+.inventory-stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.inventory-star {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: inventoryTwinkle 6s ease-in-out infinite;
+    filter: blur(0.5px);
+}
+
+@keyframes inventoryTwinkle {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+/* Contenedor principal con z-index alto */
+.container-fluid {
+    position: relative;
+    z-index: 10;
+    color: var(--text-primary, #ffffff);
+    background: transparent !important;
+}
+
+/* Forzar background en TODOS los elementos de Bootstrap */
+.container-fluid .card,
+.container-fluid .card-body,
+.container-fluid .table-responsive,
+.container-fluid .card .card-body.p-0 {
+    background: rgba(15, 15, 25, 0.8) !important;
+}
+
+/* Asegurar que ningún elemento hijo tenga fondo blanco */
+.container-fluid * {
+    background-color: transparent !important;
+}
+
+/* Re-aplicar fondos específicos donde los necesitamos */
+.container-fluid .card {
+    background: rgba(15, 15, 25, 0.8) !important;
+}
+
+.container-fluid .card-header {
+    background: rgba(25, 25, 35, 0.9) !important;
+}
+
+.container-fluid .table-responsive {
+    background: rgba(15, 15, 25, 0.9) !important;
+}
+
+.container-fluid .table tbody tr {
+    background: rgba(20, 20, 30, 0.8) !important;
+}
+
+/* Cards con glassmorfismo */
+.card {
+    background: rgba(15, 15, 25, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    color: white !important;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-header {
+    background: rgba(25, 25, 35, 0.9) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white !important;
+}
+
+.card-body {
+    background: rgba(15, 15, 25, 0.8) !important;
+    color: white !important;
+}
+
+/* Forzar estilos específicos para override de Bootstrap */
+.card.border-primary,
+.card.border-success,
+.card.border-warning,
+.card.border-info {
+    background: rgba(15, 15, 25, 0.8) !important;
+}
+
+.card.border-primary .card-body,
+.card.border-success .card-body,
+.card.border-warning .card-body,
+.card.border-info .card-body {
+    background: transparent !important;
+}
+
+/* Botones estilizados */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-primary {
+    background: rgba(25, 25, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: rgba(35, 35, 45, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: rgba(34, 197, 94, 0.8);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.btn-success:hover {
+    background: rgba(34, 197, 94, 0.9);
+    transform: translateY(-2px);
+}
+
+.btn-outline-primary {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+}
+
+.btn-outline-primary:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: white;
+}
+
+.btn-outline-secondary {
+    background: rgba(156, 163, 175, 0.1);
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    color: #d1d5db;
+}
+
+.btn-outline-secondary:hover {
+    background: rgba(156, 163, 175, 0.2);
+    color: white;
+}
+
+/* Inputs y selects */
+.form-control, .form-select {
+    background: rgba(25, 25, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-control:focus, .form-select:focus {
+    background: rgba(30, 30, 40, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    outline: none;
+    color: white;
+}
+
+.form-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Tabla estilizada */
+.table {
+    background: transparent;
+    color: white !important;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-dark {
+    background: rgba(15, 15, 25, 0.9) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.table-hover > tbody > tr:hover > td {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.table th, .table td {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    padding: 12px;
+    color: white !important;
+}
+
+.table tbody tr {
+    background: rgba(20, 20, 30, 0.8) !important;
+}
+
+.table tbody tr:hover {
+    background: rgba(30, 30, 40, 0.9) !important;
+}
+
+/* Estilos específicos para elementos dentro de la tabla */
+.table .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.table code {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #93c5fd !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.table .badge {
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: white !important;
+}
+
+.table .badge.bg-secondary {
+    background: rgba(75, 85, 99, 0.8) !important;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.table .badge.bg-success {
+    background: rgba(34, 197, 94, 0.8) !important;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.table .badge.bg-warning {
+    background: rgba(245, 158, 11, 0.8) !important;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #000 !important;
+}
+
+.table .badge.bg-danger {
+    background: rgba(239, 68, 68, 0.8) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Card que contiene la tabla */
+.table-responsive {
+    background: rgba(15, 15, 25, 0.9) !important;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* Forzar fondo oscuro en el card-body */
+.card-body {
+    background: rgba(15, 15, 25, 0.9) !important;
+}
+
+/* Forzar fondo oscuro en toda la card */
+.card {
+    background: rgba(15, 15, 25, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    color: white !important;
+}
+
+/* Forzar estilos en elementos específicos del card-body */
+.card .card-body.p-0 {
+    background: rgba(15, 15, 25, 0.9) !important;
+    padding: 0 !important;
+}
+
+/* Div que contiene "No se encontraron productos" */
+.card-body .text-center {
+    background: rgba(15, 15, 25, 0.9) !important;
+    color: white !important;
+}
+
+/* Encabezado de la tabla principal */
+.card .card-header.bg-light {
+    background: rgba(25, 25, 35, 0.9) !important;
+    color: white !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Estado sin productos */
+.text-center .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.text-center .fs-1.text-muted {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Cards de estadísticas */
+.border-primary {
+    border-color: rgba(59, 130, 246, 0.5) !important;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.border-success {
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.border-warning {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.border-info {
+    border-color: rgba(14, 165, 233, 0.5) !important;
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.text-primary { color: #93c5fd !important; }
+.text-success { color: #86efac !important; }
+.text-warning { color: #fcd34d !important; }
+.text-info { color: #7dd3fc !important; }
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+/* Títulos */
+h2, h4, h5 {
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Alertas */
+.alert {
+    background: rgba(15, 15, 25, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.alert-danger {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #fca5a5;
+}
+
+/* Modal */
+.modal-content {
+    background: rgba(15, 15, 25, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+}
+
+.modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-close {
+    filter: invert(1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+    }
+}
+
+/* Animaciones de entrada */
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scroll personalizado */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+</style>
+
+<!-- Estrellas de fondo para inventario -->
+<div class="inventory-stars" id="inventoryStars"></div>
+
+<div class="container-fluid fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-box-seam"></i> Inventario de Productos</h2>
         <div class="d-flex gap-2">
@@ -242,15 +702,15 @@ try {
     <?php endif; ?>
 
     <div class="card">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">Lista de Productos (<?= $totalProductos ?> productos)</h5>
+        <div class="card-header" style="background: rgba(25, 25, 35, 0.9) !important; color: white !important; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <h5 class="mb-0" style="color: white !important;">Lista de Productos (<?= $totalProductos ?> productos)</h5>
         </div>
         <div class="card-body p-0">
             <?php if (empty($productos)): ?>
                 <div class="text-center py-5">
-                    <i class="bi bi-inbox fs-1 text-muted"></i>
-                    <h4 class="text-muted">No se encontraron productos</h4>
-                    <p class="text-muted">No hay productos que coincidan con los filtros seleccionados.</p>
+                    <i class="bi bi-inbox fs-1" style="color: rgba(255, 255, 255, 0.4) !important;"></i>
+                    <h4 style="color: rgba(255, 255, 255, 0.8) !important;">No se encontraron productos</h4>
+                    <p style="color: rgba(255, 255, 255, 0.6) !important;">No hay productos que coincidan con los filtros seleccionados.</p>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
@@ -273,36 +733,36 @@ try {
                                 <tr>
                                     <td><?= $producto['id'] ?></td>
                                     <td>
-                                        <strong><?= htmlspecialchars($producto['nombre']) ?></strong>
+                                        <strong style="color: white !important;"><?= htmlspecialchars($producto['nombre']) ?></strong>
                                         <?php if ($hasDescripcion && !empty($producto['descripcion'])): ?>
-                                            <br><small class="text-muted"><?= htmlspecialchars(substr($producto['descripcion'], 0, 50)) ?>...</small>
+                                            <br><small style="color: rgba(255, 255, 255, 0.7) !important;"><?= htmlspecialchars(substr($producto['descripcion'], 0, 50)) ?>...</small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if (!empty($producto['sku'])): ?>
-                                            <code><?= htmlspecialchars($producto['sku']) ?></code>
+                                            <code style="background: rgba(255, 255, 255, 0.1) !important; color: #93c5fd !important; padding: 2px 6px; border-radius: 4px;"><?= htmlspecialchars($producto['sku']) ?></code>
                                         <?php else: ?>
-                                            <span class="text-muted">Sin SKU</span>
+                                            <span style="color: rgba(255, 255, 255, 0.5) !important;">Sin SKU</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if (!empty($producto['codigo_barras'])): ?>
-                                            <code><?= htmlspecialchars($producto['codigo_barras']) ?></code>
+                                            <code style="background: rgba(255, 255, 255, 0.1) !important; color: #93c5fd !important; padding: 2px 6px; border-radius: 4px;"><?= htmlspecialchars($producto['codigo_barras']) ?></code>
                                         <?php else: ?>
-                                            <span class="text-muted">Sin código</span>
+                                            <span style="color: rgba(255, 255, 255, 0.5) !important;">Sin código</span>
                                         <?php endif; ?>
                                     </td>
                                     <?php if ($hasCategoria): ?>
                                     <td>
                                         <?php if (!empty($producto['categoria'])): ?>
-                                            <span class="badge bg-secondary"><?= htmlspecialchars($producto['categoria']) ?></span>
+                                            <span class="badge" style="background: rgba(75, 85, 99, 0.8) !important; color: white !important; border: 1px solid rgba(156, 163, 175, 0.3);"><?= htmlspecialchars($producto['categoria']) ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted">Sin categoría</span>
+                                            <span style="color: rgba(255, 255, 255, 0.5) !important;">Sin categoría</span>
                                         <?php endif; ?>
                                     </td>
                                     <?php endif; ?>
                                     <td class="text-end">
-                                        <strong>$<?= number_format((int)$producto['precio']) ?></strong>
+                                        <strong style="color: #86efac !important;">$<?= number_format((int)$producto['precio']) ?></strong>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge <?= $producto['stock'] <= 10 ? 'bg-warning text-dark' : ($producto['stock'] <= 5 ? 'bg-danger' : 'bg-success') ?>">
@@ -323,11 +783,11 @@ try {
                                     <?php if ($hasFechaCreacion): ?>
                                     <td>
                                         <?php if (!empty($producto['fecha_creacion'])): ?>
-                                            <small class="text-muted">
+                                            <small style="color: rgba(255, 255, 255, 0.7) !important;">
                                                 <?= date('d/m/Y', strtotime($producto['fecha_creacion'])) ?>
                                             </small>
                                         <?php else: ?>
-                                            <span class="text-muted">-</span>
+                                            <span style="color: rgba(255, 255, 255, 0.5) !important;">-</span>
                                         <?php endif; ?>
                                     </td>
                                     <?php endif; ?>
@@ -418,25 +878,125 @@ setInterval(function() {
         location.reload();
     }
 }, 300000); // 5 minutos
+
+// Crear estrellas para el inventario
+function createInventoryStars() {
+    const container = document.getElementById('inventoryStars');
+    const starCount = 20;
+    
+    for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'inventory-star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.width = (Math.random() * 3 + 1) + 'px';
+        star.style.height = (Math.random() * 3 + 1) + 'px';
+        star.style.animationDelay = Math.random() * 6 + 's';
+        star.style.animationDuration = (Math.random() * 4 + 4) + 's';
+        
+        // Algunas estrellas más difuminadas
+        if (Math.random() > 0.7) {
+            star.style.filter = 'blur(1px)';
+            star.style.opacity = '0.4';
+        }
+        
+        container.appendChild(star);
+    }
+}
+
+// Animaciones de entrada para cards
+function animateInventoryCards() {
+    const cards = document.querySelectorAll('.card');
+    const rows = document.querySelectorAll('tr');
+    
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease-out';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+    });
+    
+    // Animar filas de la tabla
+    rows.forEach((row, index) => {
+        if (index > 0) { // Skip header
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                row.style.transition = 'all 0.4s ease-out';
+                row.style.opacity = '1';
+                row.style.transform = 'translateX(0)';
+            }, 300 + (index * 50));
+        }
+    });
+}
+
+// Inicializar animaciones
+document.addEventListener('DOMContentLoaded', function() {
+    createInventoryStars();
+    animateInventoryCards();
+    
+    // Agregar efectos hover mejorados a las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.border-primary, .border-success, .border-warning, .border-info');
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+});
 </script>
 
 <style media="print">
-    .btn, .modal, .card-header .d-flex, nav {
+    .btn, .modal, .card-header .d-flex, nav, .inventory-stars, .sidebar-toggle {
         display: none !important;
     }
     .main-content {
         padding: 0 !important;
         margin: 0 !important;
         width: 100% !important;
+        background: white !important;
+        color: black !important;
     }
     .content-wrapper {
         padding: 0 !important;
     }
     .table {
         font-size: 12px;
+        color: black !important;
     }
     .sidebar {
         display: none !important;
+    }
+    .card {
+        background: white !important;
+        color: black !important;
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    .card-header {
+        background: #f8f9fa !important;
+        color: black !important;
+    }
+    h2, h4, h5 {
+        color: black !important;
+        text-shadow: none !important;
+    }
+    .badge {
+        color: black !important;
+        background: #f8f9fa !important;
+        border: 1px solid #ddd !important;
+    }
+    .text-primary, .text-success, .text-warning, .text-info {
+        color: black !important;
+    }
+    .container-fluid {
+        color: black !important;
     }
 </style>
 
