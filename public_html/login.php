@@ -297,8 +297,8 @@ session_start();
         </div>
 
         <div class="mb-3">
-            <label for="contraseña" class="form-label">Contraseña</label>
-            <input type="password" name="contraseña" class="form-control" required>
+            <label for="contrasena" class="form-label">Contraseña</label>
+            <input type="password" name="contrasena" class="form-control" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Ingresar</button>
