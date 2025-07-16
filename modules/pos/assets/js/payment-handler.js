@@ -117,79 +117,9 @@ $(document).ready(function() {
             }
         }
     });
-    
-    // Completar la venta
-    $('#complete-sale').click(function() {
-        const paymentMethod = $('#payment-method').val();
-        const total = parseInt($('#cart-total').text().replace('$', '')) || 0;
-        
-        if (window.posModule.cart.length === 0) {
-            showToast('No hay productos en el carrito', 'error');
-            return;
-        }
-        
-        // Validación para pago en efectivo
-        if (paymentMethod === 'efectivo') {
-            const amountReceived = parseInt($('#amount-received').val()) || 0;
-            if (amountReceived < total) {
-                showToast('El monto recibido es insuficiente', 'error');
-                return;
-            }
-        }
-        
-        // Preparar los datos para enviar
-        const saleData = {
-            items: window.posModule.cart.map(item => ({
-                id: item.id,
-                cantidad: item.quantity,
-                precio: item.price
-            })),
-            paymentMethod: paymentMethod,
-            total: total
-        };
-        
-        // Deshabilitar botón durante el procesamiento
-        $('#complete-sale').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Procesando...');
-        
-        // Enviar la transacción al servidor
-        $.ajax({
-            url: '../ajax_handler.php?action=process_transaction',
-            method: 'POST',
-            data: JSON.stringify(saleData),
-            contentType: 'application/json',
-            success: function(response) {
-                try {
-                    const result = JSON.parse(response);
-                    
-                    if (result.success) {
-                        // Mostrar recibo
-                        loadReceipt(result.transactionId);
-                        
-                        // Limpiar carrito y reiniciar interfaz
-                        window.posModule.clearCart();
-                        $('#payment-method').val('efectivo').trigger('change');
-                        $('#amount-received').val('');
-                        
-                        showToast('¡Venta completada exitosamente!', 'success');
-                    } else {
-                        showToast('Error al procesar la venta: ' + result.message, 'error');
-                    }
-                } catch (e) {
-                    console.error('Error parsing response:', e);
-                    showToast('Error en la respuesta del servidor', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error processing transaction:', error);
-                showToast('Error al procesar la transacción', 'error');
-            },
-            complete: function() {
-                // Rehabilitar botón
-                $('#complete-sale').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Completar Venta');
-                updateCompleteButton(); // Revisar estado nuevamente
-            }
-        });
-    });
+
+    // NOTA: La funcionalidad de "Completar venta" está implementada en pos.js
+    // para evitar conflictos y duplicación de código
     
     // Función auxiliar para mostrar notificaciones
     function showToast(message, type = 'success') {
