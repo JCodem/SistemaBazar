@@ -3,6 +3,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Configurar headers para JSON
+header('Content-Type: application/json');
+
 // Iniciar sesión si aún no está iniciada
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -12,40 +15,69 @@ if (session_status() == PHP_SESSION_NONE) {
 require_once '../../includes/db.php';
 require_once 'controllers/POSController.php';
 
-use Modules\POS\Controllers\POSController;
-
 // Verificar que la conexión a la base de datos esté funcionando
 if (!$conn) {
-    echo json_encode(['error' => 'No hay conexión a la base de datos']);
+    echo json_encode(['success' => false, 'message' => 'No hay conexión a la base de datos']);
     exit;
 }
 
 // Crear controlador POS con la conexión existente
 $posController = new POSController($conn);
 
-// Procesar la acción solicitada
-$action = $_GET['action'] ?? '';
+// Procesar la acción solicitada - puede venir en POST o GET
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// Log para debugging
+error_log("POS AJAX - Acción recibida: " . $action);
+error_log("POS AJAX - POST data: " . print_r($_POST, true));
 
 switch ($action) {
-    case 'search_products':
-        $term = $_POST['term'] ?? '';
-        if (empty($term)) {
-            echo json_encode(['error' => 'Término de búsqueda vacío']);
+    case 'search':
+        $query = $_POST['query'] ?? '';
+        if (empty($query)) {
+            echo json_encode(['success' => false, 'message' => 'Término de búsqueda vacío']);
             exit;
         }
-        echo $posController->searchProducts($term);
+        
+        error_log("POS AJAX - Buscando: " . $query);
+        
+        try {
+            $productos = $posController->searchProducts($query);
+            echo json_encode([
+                'success' => true,
+                'productos' => $productos,
+                'count' => count($productos)
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error en búsqueda: ' . $e->getMessage()
+            ]);
+        }
         break;
         
     case 'get_product_by_code':
         $code = $_POST['code'] ?? '';
         if (empty($code)) {
-            echo json_encode(['error' => 'Código vacío']);
+            echo json_encode(['success' => false, 'message' => 'Código vacío']);
             exit;
         }
-        echo $posController->getProductByCode($code);
+        
+        try {
+            $producto = $posController->getProductByCode($code);
+            echo json_encode([
+                'success' => true,
+                'producto' => $producto
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al buscar producto: ' . $e->getMessage()
+            ]);
+        }
         break;
         
-    case 'process_transaction':
+    case 'complete_sale':
         // Obtener datos JSON del cuerpo de la petición
         $jsonData = file_get_contents('php://input');
         $data = json_decode($jsonData, true);
@@ -54,7 +86,7 @@ switch ($action) {
             try {
                 $transactionId = $posController->processTransaction(
                     $data['items'], 
-                    $data['paymentMethod'], 
+                    $data['payment_method'], 
                     $data['total']
                 );
                 
@@ -62,7 +94,7 @@ switch ($action) {
                     'success' => true,
                     'transactionId' => $transactionId
                 ]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 echo json_encode([
                     'success' => false,
                     'message' => $e->getMessage()

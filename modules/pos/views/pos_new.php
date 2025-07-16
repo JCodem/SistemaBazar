@@ -74,7 +74,7 @@ if (isset($_SESSION['user_nombre'])) {
     }
 
     .pos-card-header {
-      padding: 0.6rem 1rem;
+      padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
       background: linear-gradient(135deg, var(--primary-color), #3b82f6);
       color: white;
@@ -85,17 +85,11 @@ if (isset($_SESSION['user_nombre'])) {
       background: linear-gradient(135deg, var(--success-color), #059669);
     }
 
-    .pos-card-header h5 {
-      margin: 0;
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
     .pos-input {
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 0.4rem 0.6rem;
-      font-size: 0.85rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
       transition: all 0.2s ease;
       background: var(--light-color);
     }
@@ -103,26 +97,26 @@ if (isset($_SESSION['user_nombre'])) {
     .pos-input:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .pos-input-lg {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.9rem;
+      padding: 1rem 1.25rem;
+      font-size: 1.1rem;
       font-weight: 500;
     }
 
     .pos-btn {
-      padding: 0.4rem 0.8rem;
+      padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-weight: 600;
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       transition: all 0.2s ease;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 0.5rem;
       text-decoration: none;
     }
 
@@ -159,8 +153,8 @@ if (isset($_SESSION['user_nombre'])) {
     }
 
     .pos-btn-lg {
-      padding: 0.55rem 1rem;
-      font-size: 0.85rem;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
     }
 
     .pos-btn:disabled {
@@ -182,43 +176,16 @@ if (isset($_SESSION['user_nombre'])) {
 
     .pos-table .table th {
       background: var(--secondary-color);
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px solid var(--border-color);
       font-weight: 600;
       color: var(--text-primary);
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8rem;
+      padding: 1rem;
     }
 
     .pos-table .table td {
-      padding: 0.5rem 0.75rem;
+      padding: 1rem;
       vertical-align: middle;
       border-bottom: 1px solid var(--border-color);
-      font-size: 0.8rem;
-    }
-
-    /* Checkout section height constraint */
-    .checkout-section {
-      max-height: 700px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border-color) transparent;
-    }
-
-    .checkout-section::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .checkout-section::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .checkout-section::-webkit-scrollbar-thumb {
-      background: var(--border-color);
-      border-radius: 3px;
-    }
-
-    .checkout-section::-webkit-scrollbar-thumb:hover {
-      background: var(--text-secondary);
     }
 
     .pos-badge {
@@ -283,13 +250,13 @@ if (isset($_SESSION['user_nombre'])) {
     }
 
     .payment-method-content {
-      padding: 0.4rem 0.6rem;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
+      padding: 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
       background: var(--light-color);
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 1rem;
       transition: all 0.2s ease;
     }
 
@@ -310,20 +277,20 @@ if (isset($_SESSION['user_nombre'])) {
     /* Statistics */
     .stats-card {
       text-align: center;
-      padding: 0.75rem;
+      padding: 1.5rem;
       background: var(--light-color);
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid var(--border-color);
     }
 
     .stats-number {
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 700;
-      margin-bottom: 0.15rem;
+      margin-bottom: 0.25rem;
     }
 
     .stats-label {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--text-secondary);
       font-weight: 500;
     }
@@ -512,17 +479,17 @@ if (isset($_SESSION['user_nombre'])) {
       <!-- Panel derecho: Finalizar Compra -->
       <div class="col-lg-4">
         <!-- Panel de Finalización de Compra -->
-        <div class="pos-card fade-in mb-4 checkout-section">
+        <div class="pos-card fade-in mb-4">
           <div class="pos-card-header info">
             <h5 class="mb-0">
               <i class="bi bi-credit-card"></i>
               Finalizar Compra
             </h5>
           </div>
-          <div class="card-body p-2">
+          <div class="card-body p-4">
             <!-- RUT del Cliente -->
-            <div class="mb-2">
-              <label for="customer-rut" class="form-label fw-semibold" style="font-size: 0.8rem;">RUT del Cliente (Opcional)</label>
+            <div class="mb-4">
+              <label for="customer-rut" class="form-label fw-semibold">RUT del Cliente (Opcional)</label>
               <input type="text" 
                      id="customer-rut" 
                      class="pos-input w-100" 
@@ -530,8 +497,8 @@ if (isset($_SESSION['user_nombre'])) {
             </div>
             
             <!-- Resumen de totales -->
-            <div class="mb-2">
-              <div class="row g-2 mb-2">
+            <div class="mb-4">
+              <div class="row g-3 mb-3">
                 <div class="col-12">
                   <div class="stats-card">
                     <div class="stats-number text-primary" id="summary-items">0</div>
@@ -540,25 +507,25 @@ if (isset($_SESSION['user_nombre'])) {
                 </div>
               </div>
               
-              <div class="mt-2 p-2 rounded-3" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+              <div class="mt-3 p-3 rounded-3" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
                 <div class="d-flex justify-content-between align-items-center">
-                  <span class="fs-6 fw-bold">Total a Pagar:</span>
-                  <span class="fs-5 fw-bold" id="summary-total">$0.00</span>
+                  <span class="fs-5 fw-bold">Total a Pagar:</span>
+                  <span class="fs-3 fw-bold" id="summary-total">$0.00</span>
                 </div>
               </div>
             </div>
 
             <!-- Métodos de pago -->
-            <div class="mb-2">
-              <h6 class="mb-2 fw-bold text-primary" style="font-size: 0.85rem;">Método de Pago</h6>
-              <div class="d-grid gap-1">
+            <div class="mb-4">
+              <h6 class="mb-3 fw-bold text-primary">Método de Pago</h6>
+              <div class="d-grid gap-2">
                 <label class="payment-method-card">
                   <input type="radio" name="payment_method" value="efectivo" checked>
                   <div class="payment-method-content">
-                    <i class="bi bi-cash-coin fs-6 text-success"></i>
+                    <i class="bi bi-cash-coin fs-3 text-success"></i>
                     <div>
-                      <div class="fw-bold" style="font-size: 0.85rem;">Efectivo</div>
-                      <small class="text-muted" style="font-size: 0.7rem;">Pago en efectivo</small>
+                      <div class="fw-bold">Efectivo</div>
+                      <small class="text-muted">Pago en efectivo</small>
                     </div>
                   </div>
                 </label>
@@ -566,10 +533,10 @@ if (isset($_SESSION['user_nombre'])) {
                 <label class="payment-method-card">
                   <input type="radio" name="payment_method" value="tarjeta">
                   <div class="payment-method-content">
-                    <i class="bi bi-credit-card fs-6 text-primary"></i>
+                    <i class="bi bi-credit-card fs-3 text-primary"></i>
                     <div>
-                      <div class="fw-bold" style="font-size: 0.85rem;">Tarjeta</div>
-                      <small class="text-muted" style="font-size: 0.7rem;">Débito o crédito</small>
+                      <div class="fw-bold">Tarjeta</div>
+                      <small class="text-muted">Débito o crédito</small>
                     </div>
                   </div>
                 </label>
@@ -577,10 +544,10 @@ if (isset($_SESSION['user_nombre'])) {
                 <label class="payment-method-card">
                   <input type="radio" name="payment_method" value="transferencia">
                   <div class="payment-method-content">
-                    <i class="bi bi-bank fs-6 text-info"></i>
+                    <i class="bi bi-bank fs-3 text-info"></i>
                     <div>
-                      <div class="fw-bold" style="font-size: 0.85rem;">Transferencia</div>
-                      <small class="text-muted" style="font-size: 0.7rem;">Transferencia bancaria</small>
+                      <div class="fw-bold">Transferencia</div>
+                      <small class="text-muted">Transferencia bancaria</small>
                     </div>
                   </div>
                 </label>
@@ -588,10 +555,10 @@ if (isset($_SESSION['user_nombre'])) {
             </div>
 
             <!-- Pago en efectivo -->
-            <div id="cash-payment" class="mb-2">
-              <h6 class="mb-2 fw-bold text-success" style="font-size: 0.85rem;">Pago en Efectivo</h6>
-              <div class="mb-2">
-                <label class="form-label fw-semibold" style="font-size: 0.8rem;">Monto Recibido</label>
+            <div id="cash-payment" class="mb-4">
+              <h6 class="mb-3 fw-bold text-success">Pago en Efectivo</h6>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Monto Recibido</label>
                 <input type="number" 
                        id="amount-received" 
                        class="pos-input pos-input-lg w-100" 
@@ -600,7 +567,7 @@ if (isset($_SESSION['user_nombre'])) {
                        min="0">
               </div>
               
-              <div class="mb-2">
+              <div class="mb-3">
                 <button type="button" 
                         id="quick-payment" 
                         class="pos-btn pos-btn-outline w-100">
@@ -610,19 +577,19 @@ if (isset($_SESSION['user_nombre'])) {
               </div>
               
               <!-- Cambio -->
-              <div class="p-2 rounded-3" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+              <div class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
                 <div class="d-flex justify-content-between align-items-center">
                   <span class="fw-bold text-success">Cambio a Devolver:</span>
-                  <span class="fs-6 fw-bold text-success" id="change-amount">$0.00</span>
+                  <span class="fs-4 fw-bold text-success" id="change-amount">$0.00</span>
                 </div>
               </div>
             </div>
 
             <!-- Panel de Pago con Tarjeta -->
-            <div id="card-payment" class="payment-detail mb-2" style="display: none;">
-              <div class="p-2 rounded-3" style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.2);">
-                <div class="d-flex align-items-center gap-2">
-                  <i class="bi bi-credit-card fs-5 text-primary"></i>
+            <div id="card-payment" class="payment-detail mb-4" style="display: none;">
+              <div class="p-3 rounded-3" style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.2);">
+                <div class="d-flex align-items-center gap-3">
+                  <i class="bi bi-credit-card fs-3 text-primary"></i>
                   <div>
                     <div class="fw-bold">Listo para cobrar con tarjeta</div>
                     <small class="text-muted">Confirme el monto en el terminal</small>
@@ -632,10 +599,10 @@ if (isset($_SESSION['user_nombre'])) {
             </div>
 
             <!-- Panel de Transferencia -->
-            <div id="transfer-payment" class="payment-detail mb-2" style="display: none;">
-              <div class="p-2 rounded-3" style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2);">
-                <div class="d-flex align-items-center gap-2">
-                  <i class="bi bi-bank fs-5 text-info"></i>
+            <div id="transfer-payment" class="payment-detail mb-4" style="display: none;">
+              <div class="p-3 rounded-3" style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2);">
+                <div class="d-flex align-items-center gap-3">
+                  <i class="bi bi-bank fs-3 text-info"></i>
                   <div>
                     <div class="fw-bold">Esperando transferencia</div>
                     <small class="text-muted">Confirme la recepción del pago</small>
@@ -645,7 +612,7 @@ if (isset($_SESSION['user_nombre'])) {
             </div>
 
             <!-- Botones de acción -->
-            <div class="d-grid gap-1">
+            <div class="d-grid gap-2">
               <button type="button" 
                       id="complete-sale" 
                       class="pos-btn pos-btn-success pos-btn-lg" 
