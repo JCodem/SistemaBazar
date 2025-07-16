@@ -3,21 +3,42 @@ session_start();
 require_once '../includes/db.php';
 
 $correo = $_POST['correo'] ?? '';
-$contraseña = $_POST['contraseña'] ?? '';
+$contraseña = $_POST['contraseña'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
 try {
-    $query = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
-    $query->bindParam(':correo', $correo);
+    $query = $conn->prepare("SELECT * FROM usuarios WHERE correo = ? LIMIT 1");
+    $query->bind_param("s", $correo);
     $query->execute();
+    $resultado = $query->get_result();
+    $usuario = $resultado->fetch_assoc();
 
-    $usuario = $query->fetch(PDO::FETCH_ASSOC);
+    // Agregar depuración para ver qué está fallando
+    if (!$usuario) {
+        $_SESSION['error'] = 'Usuario no encontrado con ese correo';
+        header('Location: login.php');
+        exit;
+    }
+    
+    // Añadir depuración para ver valores
+    $_SESSION['debug_info'] = [
+        'hash_almacenado' => $usuario['contrasena'],
+        'rol' => $usuario['rol'],
+        'verificacion' => password_verify($contraseña, $usuario['contrasena']) ? 'Éxito' : 'Fallido'
+    ];
+    
+    // Verificar contraseña
+    if (password_verify($contraseña, $usuario['contrasena'])) {
+        // Guardar información del usuario en la sesión
+        $_SESSION['user_id'] = $usuario['id'];
+        $_SESSION['user_nombre'] = $usuario['nombre'];
+        $_SESSION['user_rol'] = $usuario['rol'];
 
-    if ($usuario && password_verify($contraseña, $usuario['contraseña'])) {
-        $_SESSION['usuario'] = $usuario;
-
-        if ($usuario['rol'] === 'jefe') {
+        // Redireccionar según el rol - Usar rutas absolutas
+        if ($usuario['rol'] === 'jefe' || $usuario['rol'] === 'admin') {
+            $_SESSION['mensaje'] = "Redirigiendo a admin...";
             header('Location: admin/dashboard.php');
         } else {
+            $_SESSION['mensaje'] = "Redirigiendo a vendedor...";
             header('Location: vendedor/dashboard.php');
         }
         exit;
@@ -27,8 +48,10 @@ try {
         exit;
     }
 
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+} catch (Exception $e) {
+    $_SESSION['error'] = "Error: " . $e->getMessage();
+    header('Location: login.php');
+    exit;
 }
 
  

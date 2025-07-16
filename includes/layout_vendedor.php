@@ -3,8 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$usuario = $_SESSION['usuario'] ?? [];
-$nombre = htmlspecialchars($usuario['nombre'] ?? 'Vendedor');
+// Usar las variables de sesión user_nombre si están disponibles, sino usar usuario['nombre']
+if (isset($_SESSION['user_nombre'])) {
+    $nombre = htmlspecialchars($_SESSION['user_nombre']);
+} elseif (isset($_SESSION['usuario']['nombre'])) {
+    $nombre = htmlspecialchars($_SESSION['usuario']['nombre']);
+} else {
+    $nombre = 'Vendedor';
+}
 ?>
 
 <!DOCTYPE html>
@@ -54,9 +60,10 @@ $nombre = htmlspecialchars($usuario['nombre'] ?? 'Vendedor');
 <div class="sidebar">
   <h4 class="text-center mb-4">👤 <?= $nombre ?></h4>
   <a href="dashboard.php">🏠 Panel</a>
-  <a href="registrar_venta.php">📝 Registrar Venta</a>
+  <a href="inventario.php">📦 Inventario</a>
   <a href="historial_ventas.php">📊 Historial de Ventas</a>
   <a href="perfil.php">👤 Perfil</a>
+  <a href="pos.php">🛒 Punto de venta</a>
   <a href="descargar_reporte.php">📥 Reporte Diario</a>
   <a href="../logout.php" class="text-danger">🚪 Cerrar Sesión</a>
 </div>

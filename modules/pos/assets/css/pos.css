@@ -1,0 +1,164 @@
+.product-card {
+    cursor: pointer;
+    transition: transform 0.2s;
+    height: 100%;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilos específicos para la interfaz POS */
+.container-fluid {
+    padding: 0 20px;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: bold;
+}
+
+.payment-detail {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+#cart-table {
+    margin-bottom: 0;
+}
+
+/* Estilos para el carrito unificado */
+#cart-count {
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.quantity-input {
+    max-width: 70px;
+    text-align: center;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-light th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-secondary th {
+    font-size: 1rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Estilos para el panel de pago */
+.payment-detail {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    margin-bottom: 15px;
+}
+
+#summary-items, #summary-total {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.btn-lg {
+    padding: 12px 20px;
+    font-size: 1.1rem;
+}
+
+/* Estilos responsivos */
+@media (max-width: 992px) {
+    .col-lg-4 {
+        margin-top: 1rem;
+    }
+}
+
+/* Animaciones para botones */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Estilos para modo escáner */
+.scanner-active {
+    background-color: #e8f4ff;
+    border: 2px solid #007bff;
+}
+
+#product-search:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.btn-scanner-active {
+    animation: scanner-pulse 2s infinite;
+}
+
+/* Estilos para búsqueda de productos */
+#product-results .card {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+}
+
+#product-results .card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+}
+
+.add-to-cart:hover {
+    transform: scale(1.05);
+}
+
+/* Animaciones */
+@keyframes scanner-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+/* Estilos para código de barras */
+.barcode-display {
+    font-family: 'Libre Barcode 39', cursive;
+    font-size: 2rem;
+}
+
+/* Estilos para notificaciones toast */
+.toast {
+    opacity: 0.9;
+}
+
+.toast-container {
+    z-index: 1070;
+}
+
+@media (max-width: 768px) {
+    .col-md-8, .col-md-4 {
+        width: 100%;
+    }
+}
