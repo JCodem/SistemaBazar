@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /SistemaBazar/public_html/login.php');
+    header('Location: ../../../public_html/login.php');
     exit;
 }
 
@@ -28,6 +28,7 @@ if (isset($_SESSION['user_nombre'])) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/pos.css">
   
   <style>
     :root {
@@ -394,36 +395,37 @@ if (isset($_SESSION['user_nombre'])) {
     }
   </style>
 </head>
+<!-- Header -->
+<nav class="navbar navbar-expand-lg" style="background: var(--light-color); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-light);">
+  <div class="container-fluid">
+    <div class="navbar-brand fw-bold text-primary">
+      <i class="bi bi-shop"></i>
+      Sistema Bazar - POS
+    </div>
+    
+    <div class="navbar-nav ms-auto">
+      <div class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+          <i class="bi bi-person-circle"></i>
+          <span><?php echo $nombre; ?></span>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/dashboard.php">
+            <i class="bi bi-house-door"></i> Dashboard
+          </a></li>
+          <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/inventario.php">
+            <i class="bi bi-box"></i> Inventario
+          </a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php">
+            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
 
-<body>
-  <!-- Header -->
-  <nav class="navbar navbar-expand-lg" style="background: var(--light-color); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-light);">
-    <div class="container-fluid">
-      <div class="navbar-brand fw-bold text-primary">
-        <i class="bi bi-shop"></i>
-        Sistema Bazar - POS
-      </div>
-      
-      <div class="navbar-nav ms-auto">
-        <div class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle"></i>
-            <span><?php echo $nombre; ?></span>
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/dashboard.php">
-              <i class="bi bi-house-door"></i> Dashboard
-            </a></li>
-            <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/inventario.php">
-              <i class="bi bi-box"></i> Inventario
-            </a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php">
-              <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-            </a></li>
-          </ul>
-        </div>
-      </div>
     </div>
   </nav>
 
@@ -724,21 +726,12 @@ if (isset($_SESSION['user_nombre'])) {
       debugPOS('POS inicializado correctamente');
     });
 
-    function initializeEventListeners() {
-      debugPOS('Configurando event listeners...');
-      
-      // Campo de búsqueda
-      const searchInput = document.getElementById('product-search');
-      if (searchInput) {
-        searchInput.addEventListener('input', handleSmartSearch);
-        searchInput.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSmartSearch();
-          }
-        });
-        debugPOS('Event listener para búsqueda configurado');
-      }
+<!-- Scripts JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/pos.js"></script>
+<script src="../assets/js/payment-handler.js"></script>
+
 
       // Botón limpiar carrito
       const clearCartBtn = document.getElementById('clear-cart');

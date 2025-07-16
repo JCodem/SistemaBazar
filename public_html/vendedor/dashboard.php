@@ -5,6 +5,7 @@ $titulo = 'Dashboard del Vendedor';
 include '../../includes/layout_vendedor.php';
 ?>
 
+
 <style>
 /* Estilo minimalista matching con login */
 .dashboard-container {
@@ -159,10 +160,23 @@ include '../../includes/layout_vendedor.php';
 <div class="dashboard-container">
     <!-- Estrellas de fondo -->
     <div class="dashboard-stars" id="dashboardStars"></div>
-    
+
     <div class="content-overlay">
         <h1 class="dashboard-title">Panel del Vendedor</h1>
         <p class="dashboard-subtitle">Gestiona tus ventas y consulta tu información de manera eficiente</p>
+
+        <!-- Mensajes de sesión -->
+        <?php if (isset($_SESSION['mensaje'])): ?>
+          <div class="alert alert-success">
+            <?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+          <div class="alert alert-danger">
+            <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+          </div>
+        <?php endif; ?>
 
         <!-- Estadísticas rápidas -->
         <div class="stats-grid">
@@ -189,7 +203,6 @@ include '../../includes/layout_vendedor.php';
                     <p class="card-description">Procesa ventas de manera rápida y eficiente</p>
                 </a>
             </div>
-            
             <div class="col-md-6 col-lg-4">
                 <a href="inventario.php" class="dashboard-card">
                     <div class="card-icon">📦</div>
@@ -197,7 +210,6 @@ include '../../includes/layout_vendedor.php';
                     <p class="card-description">Consulta el stock y gestiona productos</p>
                 </a>
             </div>
-            
             <div class="col-md-6 col-lg-4">
                 <a href="historial_ventas.php" class="dashboard-card">
                     <div class="card-icon">📊</div>
@@ -205,7 +217,6 @@ include '../../includes/layout_vendedor.php';
                     <p class="card-description">Consulta tus ventas anteriores con detalle</p>
                 </a>
             </div>
-            
             <div class="col-md-6 col-lg-4">
                 <a href="perfil.php" class="dashboard-card">
                     <div class="card-icon">👤</div>
@@ -213,7 +224,6 @@ include '../../includes/layout_vendedor.php';
                     <p class="card-description">Edita tus datos personales y configuración</p>
                 </a>
             </div>
-            
             <div class="col-md-6 col-lg-4">
                 <a href="descargar_reporte.php" class="dashboard-card">
                     <div class="card-icon">📥</div>
@@ -221,7 +231,6 @@ include '../../includes/layout_vendedor.php';
                     <p class="card-description">Descarga un resumen de tus ventas del día</p>
                 </a>
             </div>
-            
             <div class="col-md-6 col-lg-4">
                 <a href="../logout.php" class="dashboard-card" style="border-color: rgba(255, 107, 107, 0.3);">
                     <div class="card-icon" style="background: linear-gradient(135deg, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🚪</div>

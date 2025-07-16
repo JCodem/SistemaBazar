@@ -4,7 +4,7 @@ session_start();
 
 // Verificar autenticación - compatibilidad con ambos formatos de sesión
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['usuario'])) {
-    header('Location: ../login.php');
+    header('Location: ./login.php');
     exit;
 }
 
@@ -23,7 +23,7 @@ if (isset($_SESSION['user_rol'])) {
 }
 
 if (!$tieneAcceso) {
-    header('Location: ../login.php?error=acceso_no_autorizado');
+    header('Location: ./login.php?error=acceso_no_autorizado');
     exit;
 }
 

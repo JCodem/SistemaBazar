@@ -4,6 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['usuario']['rol']) || $_SESSION['usuario']['rol'] !== 'jefe') {
-    header('Location: ../login.php');
+    header('Location: ../public_html/login.php');
     exit;
 }

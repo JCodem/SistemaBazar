@@ -15,12 +15,11 @@ $rol = $_POST['rol'] ?? '';
 
 try {
     // Verifica si ya existe el correo
-    $verificar = $conn->prepare("SELECT * FROM usuarios WHERE correo = ? LIMIT 1");
-    $verificar->bind_param("s", $correo);
-    $verificar->execute();
-    $resultado = $verificar->get_result();
+    $verificar = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
+    $verificar->execute([':correo' => $correo]);
+    $resultado = $verificar->fetch(PDO::FETCH_ASSOC);
 
-    if ($resultado->fetch_assoc()) {
+    if ($resultado) {
         $_SESSION['registro_error'] = "Ese correo ya está registrado.";
         header('Location: register.php');
         exit;
@@ -32,12 +31,15 @@ try {
     // Inserta el nuevo usuario
     $stmt = $conn->prepare("
         INSERT INTO usuarios (correo, contrasena, nombre, rut, rol, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        VALUES (:correo, :contrasena, :nombre, :rut, :rol, NOW(), NOW())
     ");
-
-    $stmt->bind_param("sssss", $correo, $hash, $nombre, $rut, $rol);
-
-    $stmt->execute();
+    $stmt->execute([
+        ':correo' => $correo,
+        ':contrasena' => $hash,
+        ':nombre' => $nombre,
+        ':rut' => $rut,
+        ':rol' => $rol
+    ]);
 
     $_SESSION['registro_exito'] = "Usuario registrado correctamente.";
     header('Location: register.php');
