@@ -19,13 +19,6 @@ try {
         exit;
     }
     
-    // Añadir depuración para ver valores
-    $_SESSION['debug_info'] = [
-        'hash_almacenado' => $usuario['contrasena'],
-        'rol' => $usuario['rol'],
-        'verificacion' => password_verify($contraseña, $usuario['contrasena']) ? 'Éxito' : 'Fallido'
-    ];
-    
     // Verificar contraseña
     if (password_verify($contraseña, $usuario['contrasena'])) {
         // Guardar información del usuario en la sesión

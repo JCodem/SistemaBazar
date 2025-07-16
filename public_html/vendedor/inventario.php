@@ -364,11 +364,6 @@ try {
     </div>
 </div>
 
-<!-- Enlaces a Bootstrap y Bootstrap Icons -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
 // Función para exportar CSV
 function exportarCSV() {
@@ -426,18 +421,23 @@ setInterval(function() {
 </script>
 
 <style media="print">
-    .btn, .modal, .card-header .d-flex, nav, .sidebar {
+    .btn, .modal, .card-header .d-flex, nav {
         display: none !important;
     }
     .main-content {
         padding: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
+    }
+    .content-wrapper {
+        padding: 0 !important;
     }
     .table {
         font-size: 12px;
     }
+    .sidebar {
+        display: none !important;
+    }
 </style>
 
-</div> <!-- Cierre del main-content del layout -->
-</body>
-</html>
+<?php include '../../includes/footer_vendedor.php'; ?>
