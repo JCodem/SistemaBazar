@@ -1,6 +1,6 @@
 <?php
-require_once '../../includes/auth_middleware.php';
-require_once '../../includes/rol_middleware_vendedor.php';
+require_once '../../includes/middleware_unificado.php';
+middlewareVendedor();
 ?>
 
 <!DOCTYPE html>
@@ -13,7 +13,7 @@ require_once '../../includes/rol_middleware_vendedor.php';
 <body class="bg-light">
 
 <div class="container mt-5">
-    <h2 class="text-center">¡Hola, <?= $_SESSION['usuario']['nombre'] ?? 'Vendedor' ?>!</h2>
+    <h2 class="text-center">¡Hola, <?= $_SESSION['user_nombre'] ?? 'Vendedor' ?>!</h2>
     <p class="text-center">Estás en el <strong>panel del vendedor</strong>.</p>
     <div class="text-center mt-4">
         <a href="../logout.php" class="btn btn-danger">Cerrar sesión</a>

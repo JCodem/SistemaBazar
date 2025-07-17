@@ -1,387 +1,677 @@
-<?php require_once '../../includes/layout_admin.php'; ?>
+<?php 
+require_once '../../includes/layout_admin.php';
+require_once '../../includes/db.php';
+
+// Obtener estadísticas del sistema
+function obtenerEstadisticas($conn) {
+    $stats = [];
+    
+    // Total ventas del día
+    $query = "SELECT COALESCE(SUM(total), 0) as total_hoy FROM ventas WHERE DATE(fecha) = CURDATE()";
+    $result = $conn->query($query);
+    $stats['ventas_hoy'] = $result ? $result->fetch_assoc()['total_hoy'] : 0;
+    
+    // Vendedores activos
+    $query = "SELECT COUNT(*) as total FROM usuarios WHERE rol IN ('vendedor', 'jefe')";
+    $result = $conn->query($query);
+    $stats['vendedores'] = $result ? $result->fetch_assoc()['total'] : 0;
+    
+    // Productos en stock
+    $query = "SELECT COUNT(*) as total FROM productos WHERE stock > 0";
+    $result = $conn->query($query);
+    $stats['productos_stock'] = $result ? $result->fetch_assoc()['total'] : 0;
+    
+    // Transacciones del día
+    $query = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = CURDATE()";
+    $result = $conn->query($query);
+    $stats['transacciones_hoy'] = $result ? $result->fetch_assoc()['total'] : 0;
+    
+    // Productos con stock bajo
+    $query = "SELECT COUNT(*) as total FROM productos WHERE stock <= 5 AND stock > 0";
+    $result = $conn->query($query);
+    $stats['stock_bajo'] = $result ? $result->fetch_assoc()['total'] : 0;
+    
+    // Total productos
+    $query = "SELECT COUNT(*) as total FROM productos";
+    $result = $conn->query($query);
+    $stats['total_productos'] = $result ? $result->fetch_assoc()['total'] : 0;
+    
+    return $stats;
+}
+
+// Obtener datos para gráficas
+function obtenerDatosGraficas($conn) {
+    $datos = [];
+    
+    // Ventas últimos 7 días
+    $query = "SELECT DATE(fecha) as fecha, SUM(total) as total 
+              FROM ventas 
+              WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+              GROUP BY DATE(fecha) 
+              ORDER BY fecha";
+    $result = $conn->query($query);
+    $datos['ventas_semana'] = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $datos['ventas_semana'][] = $row;
+        }
+    }
+    
+    // Top productos más vendidos
+    $query = "SELECT p.nombre, SUM(vd.cantidad) as cantidad_vendida
+              FROM productos p
+              JOIN venta_detalles vd ON p.id = vd.producto_id
+              JOIN ventas v ON vd.venta_id = v.id
+              WHERE v.fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+              GROUP BY p.id, p.nombre
+              ORDER BY cantidad_vendida DESC
+              LIMIT 5";
+    $result = $conn->query($query);
+    $datos['top_productos'] = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $datos['top_productos'][] = $row;
+        }
+    }
+    
+    return $datos;
+}
+
+$estadisticas = obtenerEstadisticas($conn);
+$datosGraficas = obtenerDatosGraficas($conn);
+?>
+
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <style>
-/* Estilo para administrador - Portal dimensional */
-.admin-dashboard {
-    background: linear-gradient(135deg, #0c0c0c 0%, #2d1b69 50%, #0c0c0c 100%);
-    min-height: 100vh;
-    position: relative;
-    overflow: hidden;
+/* Estilos mejorados para el dashboard admin */
+.dashboard-container {
     padding: 0;
-    margin: 0;
+    background: transparent;
 }
 
-.admin-grid-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 60px 60px;
-    animation: adminGridMove 20s linear infinite;
-    z-index: 1;
-}
-
-@keyframes adminGridMove {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(60px, 60px); }
-}
-
-.admin-particles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.admin-particle {
-    position: absolute;
-    width: 2px;
-    height: 20px;
-    background: linear-gradient(to bottom, rgba(255, 107, 107, 0.8), transparent);
-    animation: adminParticleMove 6s linear infinite;
-}
-
-@keyframes adminParticleMove {
-    0% { transform: translateY(100vh) translateX(0px); opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
-}
-
-.admin-content {
-    position: relative;
-    z-index: 10;
-    background: rgba(15, 15, 25, 0.9);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.dashboard-header {
+    background: linear-gradient(135deg, rgba(45, 27, 105, 0.1), rgba(17, 153, 142, 0.1));
     border-radius: 20px;
-    margin: 2rem;
-    padding: 3rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
 }
 
-.admin-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.admin-title {
-    font-size: 3rem;
-    font-weight: 300;
+.welcome-title {
     color: #ffffff;
-    margin-bottom: 1rem;
-    letter-spacing: 2px;
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-.admin-subtitle {
+.welcome-subtitle {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-}
-
-.admin-welcome {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 1rem;
-}
-
-.admin-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
-}
-
-.admin-stat-card {
-    background: rgba(30, 30, 40, 0.8);
-    border: 2px solid transparent;
-    border-radius: 15px;
-    padding: 2rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.admin-stat-card::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b);
-    border-radius: 15px;
-    z-index: -1;
-    animation: adminBorderRotate 4s linear infinite;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.admin-stat-card:hover::before {
-    opacity: 1;
-}
-
-@keyframes adminBorderRotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.admin-stat-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-.admin-stat-icon {
-    font-size: 3.5rem;
+    font-size: 1.1rem;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
-.admin-stat-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.admin-stat-label {
+.current-time {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 0.95rem;
 }
 
-.admin-quick-actions {
+/* Grid de estadísticas */
+.stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-.admin-action-card {
-    background: rgba(25, 25, 35, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+.stat-card {
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.8), rgba(45, 27, 105, 0.3));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
     padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    text-align: center;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
-.admin-action-card::after {
+.stat-card::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.6s ease;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+    border-radius: 16px 16px 0 0;
 }
 
-.admin-action-card:hover::after {
-    left: 100%;
-}
-
-.admin-action-card:hover {
+.stat-card:hover {
     transform: translateY(-8px) scale(1.02);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.stat-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.stat-icon.sales { background: linear-gradient(135deg, #ff6b6b, #ff8e8e); }
+.stat-icon.users { background: linear-gradient(135deg, #48dbfb, #74edf7); }
+.stat-icon.products { background: linear-gradient(135deg, #feca57, #ffd93d); }
+.stat-icon.transactions { background: linear-gradient(135deg, #ff9ff3, #f368e0); }
+.stat-icon.alert { background: linear-gradient(135deg, #ff7675, #fd79a8); }
+.stat-icon.inventory { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+
+.stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.stat-change {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.stat-change.positive {
+    background: rgba(0, 255, 127, 0.1);
+    color: #00ff7f;
+}
+
+.stat-change.negative {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+}
+
+/* Grid de contenido principal */
+.content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Tarjetas de gráficas */
+.chart-card {
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.9), rgba(45, 27, 105, 0.3));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2rem;
+    backdrop-filter: blur(15px);
+}
+
+.chart-title {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 1rem;
+}
+
+/* Acciones rápidas mejoradas */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.action-card {
+    background: linear-gradient(135deg, rgba(25, 25, 35, 0.9), rgba(45, 27, 105, 0.2));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.action-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     text-decoration: none;
     color: inherit;
 }
 
-.admin-action-icon {
-    font-size: 2.5rem;
+.action-icon {
+    font-size: 2rem;
     margin-bottom: 1rem;
     color: #48dbfb;
 }
 
-.admin-action-title {
+.action-title {
     color: #ffffff;
     font-weight: 600;
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
 }
 
-.admin-action-desc {
+.action-desc {
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.9rem;
     line-height: 1.4;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .admin-title {
-        font-size: 2.2rem;
-    }
-    
-    .admin-content {
-        margin: 1rem;
-        padding: 2rem;
-    }
-    
-    .admin-stats {
+@media (max-width: 1200px) {
+    .content-grid {
         grid-template-columns: 1fr;
     }
 }
-</style>
 
-<div class="admin-dashboard">
-    <!-- Grid de fondo -->
-    <div class="admin-grid-bg"></div>
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
     
-    <!-- Partículas -->
-    <div class="admin-particles" id="adminParticles"></div>
+    .dashboard-header {
+        padding: 1.5rem;
+    }
     
-    <div class="admin-content">
-        <div class="admin-header">
-            <h1 class="admin-title">Centro de Control</h1>
-            <p class="admin-subtitle">Panel de Administración</p>
-            <p class="admin-welcome">¡Bienvenido, <?= htmlspecialchars($_SESSION['usuario']['nombre']) ?>!</p>
-        </div>
-
-        <!-- Estadísticas principales -->
-        <div class="admin-stats">
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">💰</div>
-                <span class="admin-stat-number">$0.00</span>
-                <div class="admin-stat-label">Total Ventas Hoy</div>
-            </div>
-            
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">👥</div>
-                <span class="admin-stat-number">0</span>
-                <div class="admin-stat-label">Vendedores Activos</div>
-            </div>
-            
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">📦</div>
-                <span class="admin-stat-number">0</span>
-                <div class="admin-stat-label">Productos en Stock</div>
-            </div>
-            
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">📊</div>
-                <span class="admin-stat-number">0</span>
-                <div class="admin-stat-label">Transacciones Hoy</div>
-            </div>
-        </div>
-
-        <!-- Acciones rápidas -->
-        <div class="admin-quick-actions">
-            <a href="productos.php" class="admin-action-card">
-                <div class="admin-action-icon">📦</div>
-                <div class="admin-action-title">Gestión de Productos</div>
-                <div class="admin-action-desc">Administrar inventario y catálogo</div>
-            </a>
-            
-            <a href="ventas.php" class="admin-action-card">
-                <div class="admin-action-icon">🧾</div>
-                <div class="admin-action-title">Registro de Ventas</div>
-                <div class="admin-action-desc">Consultar todas las transacciones</div>
-            </a>
-            
-            <a href="informes.php" class="admin-action-card">
-                <div class="admin-action-icon">📈</div>
-                <div class="admin-action-title">Informes por Día</div>
-                <div class="admin-action-desc">Análisis y reportes detallados</div>
-            </a>
-            
-            <a href="vendedores.php" class="admin-action-card">
-                <div class="admin-action-icon">👥</div>
-                <div class="admin-action-title">Gestión de Vendedores</div>
-                <div class="admin-action-desc">Administrar personal de ventas</div>
-            </a>
-            
-            <a href="apertura_cierre.php" class="admin-action-card">
-                <div class="admin-action-icon">📅</div>
-                <div class="admin-action-title">Cierre del Día</div>
-                <div class="admin-action-desc">Operaciones de apertura y cierre</div>
-            </a>
-            
-            <a href="seguridad.php" class="admin-action-card">
-                <div class="admin-action-icon">🛡️</div>
-                <div class="admin-action-title">Seguridad</div>
-                <div class="admin-action-desc">Configuración y auditoría</div>
-            </a>
-        </div>
-    </div>
-</div>
-
-<script src="../assets/js/page-transitions.js"></script>
-<script>
-// Crear partículas para administrador
-function createAdminParticles() {
-    const container = document.getElementById('adminParticles');
-    const particleCount = 15;
+    .welcome-title {
+        font-size: 2rem;
+    }
     
-    for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'admin-particle';
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 6 + 's';
-        particle.style.animationDuration = (Math.random() * 3 + 5) + 's';
-        
-        // Variar el color
-        const colors = [
-            'linear-gradient(to bottom, rgba(255, 107, 107, 0.8), transparent)',
-            'linear-gradient(to bottom, rgba(254, 202, 87, 0.8), transparent)',
-            'linear-gradient(to bottom, rgba(72, 219, 251, 0.8), transparent)'
-        ];
-        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-        
-        container.appendChild(particle);
+    .chart-container {
+        height: 250px;
     }
 }
 
-// Animación de entrada para elementos
-function animateAdminElements() {
-    const statCards = document.querySelectorAll('.admin-stat-card');
-    const actionCards = document.querySelectorAll('.admin-action-card');
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Loading spinner para las gráficas */
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: #48dbfb;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<div class="dashboard-container">
+    <!-- Header del Dashboard -->
+    <div class="dashboard-header">
+        <h1 class="welcome-title">Panel de Control Administrativo</h1>
+        <p class="welcome-subtitle">¡Bienvenido, <?= htmlspecialchars($_SESSION['user_nombre'] ?? 'Administrador') ?>!</p>
+        <p class="current-time" id="currentTime"></p>
+    </div>
+
+    <!-- Grid de Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card animate-up" style="animation-delay: 0.1s">
+            <div class="stat-icon sales">💰</div>
+            <span class="stat-value">$<?= number_format($estadisticas['ventas_hoy'], 0, ',', '.') ?></span>
+            <div class="stat-label">Ventas de Hoy</div>
+            <div class="stat-change positive">+12% vs ayer</div>
+        </div>
+        
+        <div class="stat-card animate-up" style="animation-delay: 0.2s">
+            <div class="stat-icon users">👥</div>
+            <span class="stat-value"><?= $estadisticas['vendedores'] ?></span>
+            <div class="stat-label">Vendedores Activos</div>
+        </div>
+        
+        <div class="stat-card animate-up" style="animation-delay: 0.3s">
+            <div class="stat-icon products">📦</div>
+            <span class="stat-value"><?= $estadisticas['productos_stock'] ?></span>
+            <div class="stat-label">Productos en Stock</div>
+            <div class="stat-change negative">de <?= $estadisticas['total_productos'] ?> total</div>
+        </div>
+        
+        <div class="stat-card animate-up" style="animation-delay: 0.4s">
+            <div class="stat-icon transactions">📊</div>
+            <span class="stat-value"><?= $estadisticas['transacciones_hoy'] ?></span>
+            <div class="stat-label">Transacciones Hoy</div>
+        </div>
+        
+        <div class="stat-card animate-up" style="animation-delay: 0.5s">
+            <div class="stat-icon alert">⚠️</div>
+            <span class="stat-value"><?= $estadisticas['stock_bajo'] ?></span>
+            <div class="stat-label">Productos Stock Bajo</div>
+            <?php if ($estadisticas['stock_bajo'] > 0): ?>
+            <div class="stat-change negative">Requiere atención</div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="stat-card animate-up" style="animation-delay: 0.6s">
+            <div class="stat-icon inventory">📋</div>
+            <span class="stat-value"><?= $estadisticas['total_productos'] ?></span>
+            <div class="stat-label">Total Productos</div>
+        </div>
+    </div>
+
+    <!-- Grid de contenido principal -->
+    <div class="content-grid">
+        <!-- Gráfica de ventas -->
+        <div class="chart-card animate-up" style="animation-delay: 0.7s">
+            <h3 class="chart-title">
+                <i class="bi bi-graph-up"></i>
+                Ventas de los Últimos 7 Días
+            </h3>
+            <div class="chart-container">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top productos -->
+        <div class="chart-card animate-up" style="animation-delay: 0.8s">
+            <h3 class="chart-title">
+                <i class="bi bi-award"></i>
+                Productos Más Vendidos
+            </h3>
+            <div class="chart-container">
+                <canvas id="productsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="quick-actions">
+        <a href="productos.php" class="action-card animate-up" style="animation-delay: 0.9s">
+            <div class="action-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="action-title">Gestión de Productos</div>
+            <div class="action-desc">Administrar inventario y catálogo</div>
+        </a>
+        
+        <a href="ventas.php" class="action-card animate-up" style="animation-delay: 1s">
+            <div class="action-icon"><i class="bi bi-receipt"></i></div>
+            <div class="action-title">Registro de Ventas</div>
+            <div class="action-desc">Consultar todas las transacciones</div>
+        </a>
+        
+        <a href="informes.php" class="action-card animate-up" style="animation-delay: 1.1s">
+            <div class="action-icon"><i class="bi bi-graph-up"></i></div>
+            <div class="action-title">Informes Detallados</div>
+            <div class="action-desc">Análisis y reportes avanzados</div>
+        </a>
+        
+        <a href="vendedores.php" class="action-card animate-up" style="animation-delay: 1.2s">
+            <div class="action-icon"><i class="bi bi-people"></i></div>
+            <div class="action-title">Gestión de Personal</div>
+            <div class="action-desc">Administrar vendedores y permisos</div>
+        </a>
+        
+        <a href="apertura_cierre.php" class="action-card animate-up" style="animation-delay: 1.3s">
+            <div class="action-icon"><i class="bi bi-calendar-check"></i></div>
+            <div class="action-title">Control de Caja</div>
+            <div class="action-desc">Apertura y cierre diario</div>
+        </a>
+        
+        <a href="seguridad.php" class="action-card animate-up" style="animation-delay: 1.4s">
+            <div class="action-icon"><i class="bi bi-shield-check"></i></div>
+            <div class="action-title">Seguridad</div>
+            <div class="action-desc">Configuración y auditoría</div>
+        </a>
+    </div>
+</div>
+
+<script>
+// Configuración global de Chart.js
+Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+Chart.defaults.font.family = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+
+// Función para actualizar la hora
+function updateTime() {
+    const now = new Date();
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    document.getElementById('currentTime').textContent = now.toLocaleDateString('es-ES', options);
+}
+
+// Datos para las gráficas desde PHP
+const ventasData = <?= json_encode($datosGraficas['ventas_semana']) ?>;
+const productosData = <?= json_encode($datosGraficas['top_productos']) ?>;
+
+// Configuración de la gráfica de ventas
+function initSalesChart() {
+    const ctx = document.getElementById('salesChart').getContext('2d');
     
-    // Animar estadísticas
-    statCards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(50px) scale(0.8)';
-        setTimeout(() => {
-            card.style.transition = 'all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1)';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0) scale(1)';
-        }, 200 + (index * 150));
-    });
+    // Preparar datos de los últimos 7 días
+    const fechas = [];
+    const ventas = [];
+    const hoy = new Date();
     
-    // Animar acciones rápidas
-    actionCards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(40px) rotateX(15deg)';
-        setTimeout(() => {
-            card.style.transition = 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0) rotateX(0deg)';
-        }, 600 + (index * 100));
+    for (let i = 6; i >= 0; i--) {
+        const fecha = new Date(hoy);
+        fecha.setDate(fecha.getDate() - i);
+        const fechaStr = fecha.toISOString().split('T')[0];
+        fechas.push(fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }));
+        
+        // Buscar si hay ventas para esta fecha
+        const ventaDelDia = ventasData.find(v => v.fecha === fechaStr);
+        ventas.push(ventaDelDia ? parseFloat(ventaDelDia.total) : 0);
+    }
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: fechas,
+            datasets: [{
+                label: 'Ventas ($)',
+                data: ventas,
+                borderColor: '#48dbfb',
+                backgroundColor: 'rgba(72, 219, 251, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#48dbfb',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            },
+            elements: {
+                point: {
+                    hoverBackgroundColor: '#feca57'
+                }
+            }
+        }
     });
 }
 
+// Configuración de la gráfica de productos
+function initProductsChart() {
+    const ctx = document.getElementById('productsChart').getContext('2d');
+    
+    const labels = productosData.map(p => p.nombre);
+    const data = productosData.map(p => parseInt(p.cantidad_vendida));
+    
+    const colors = [
+        '#ff6b6b',
+        '#feca57',
+        '#48dbfb',
+        '#ff9ff3',
+        '#54a0ff'
+    ];
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels.length > 0 ? labels : ['Sin datos'],
+            datasets: [{
+                data: data.length > 0 ? data : [1],
+                backgroundColor: data.length > 0 ? colors.slice(0, data.length) : ['rgba(255, 255, 255, 0.1)'],
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2,
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+}
+
+// Animaciones de entrada
+function animateElements() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    });
+
+    document.querySelectorAll('.animate-up').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        observer.observe(el);
+    });
+}
+
+// Actualizar estadísticas cada 30 segundos
+function refreshStats() {
+    // Aquí podrías hacer una llamada AJAX para actualizar las estadísticas
+    // sin recargar la página completa
+    fetch('dashboard_ajax.php?action=get_stats')
+        .then(response => response.json())
+        .then(data => {
+            // Actualizar los valores en las tarjetas
+            // Implementar según necesidades específicas
+        })
+        .catch(error => console.log('Error actualizando estadísticas:', error));
+}
+
+// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
-    createAdminParticles();
-    animateAdminElements();
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    // Delay para permitir que el CSS se cargue completamente
+    setTimeout(() => {
+        initSalesChart();
+        initProductsChart();
+        animateElements();
+    }, 100);
+    
+    // Actualizar estadísticas cada 30 segundos
+    setInterval(refreshStats, 30000);
+    
+    // Agregar efectos hover a las tarjetas de stats
+    document.querySelectorAll('.stat-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
     
     // Auto-trigger transition if coming from login
     const urlParams = new URLSearchParams(window.location.search);
@@ -394,6 +684,103 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
     }
 });
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close">&times;</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+    
+    // Manual close
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+        notification.remove();
+    });
+}
+
+// Verificar alertas de stock bajo
+<?php if ($estadisticas['stock_bajo'] > 0): ?>
+setTimeout(() => {
+    showNotification(`⚠️ Hay <?= $estadisticas['stock_bajo'] ?> productos con stock bajo que requieren atención`, 'warning');
+}, 2000);
+<?php endif; ?>
 </script>
+
+<style>
+/* Estilos para notificaciones */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(45, 27, 105, 0.3));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    color: white;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification.warning {
+    border-left: 4px solid #feca57;
+}
+
+.notification.success {
+    border-left: 4px solid #00ff7f;
+}
+
+.notification.error {
+    border-left: 4px solid #ff6b6b;
+}
+
+.notification-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-close:hover {
+    color: white;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+</style>
 
 
