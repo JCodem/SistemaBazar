@@ -3,10 +3,7 @@ session_start();
 require_once __DIR__ . '/auth_middleware.php';
 require_once __DIR__ . '/rol_middleware.php';
 
-if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'jefe') {
-    header('Location: ../admin/dashboard.php');
-    exit;
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -84,6 +81,7 @@ if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'jefe') {
     <a href="../admin/seguridad.php">🛡️ Seguridad</a>
     <a href="../admin/perfil.php">👤 Perfil del administrador</a>
     <a href="../logout.php" class="text-danger">🚪 Cerrar sesión</a>
+    
 </div>
 
 <div class="content">

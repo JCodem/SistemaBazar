@@ -27,12 +27,14 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         $_SESSION['user_id'] = $usuario['id'];
         $_SESSION['user_nombre'] = $usuario['nombre'];
         $_SESSION['user_rol'] = $usuario['rol'];
-        escribir_log("LOGIN OK: Usuario ID {$usuario['id']} ({$usuario['correo']}) - Rol: {$usuario['rol']}");
-        // Redireccionar según el rol - Usar rutas relativas
+        escribir_log("LOGIN OK: Usuario ID {$usuario['id']} ({$usuario['correo']}) - Rol: {$usuario['rol']} - SESSION: " . json_encode($_SESSION));
+        // Depuración extra: loguear el estado antes de redirigir
         if ($usuario['rol'] === 'jefe' || $usuario['rol'] === 'admin') {
+            escribir_log("REDIRECT: Usuario con rol '{$usuario['rol']}' será enviado a admin/dashboard.php");
             $_SESSION['mensaje'] = "Redirigiendo a admin...";
             header('Location: admin/dashboard.php');
         } else {
+            escribir_log("REDIRECT: Usuario con rol '{$usuario['rol']}' será enviado a vendedor/dashboard.php");
             $_SESSION['mensaje'] = "Redirigiendo a vendedor...";
             header('Location: vendedor/dashboard.php');
         }

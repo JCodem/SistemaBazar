@@ -245,7 +245,7 @@
 
 <div class="admin-dashboard">
     <!-- Grid de fondo -->
-    <div class="admin-grid-bg"></div>
+
     
     <!-- Partículas -->
     <div class="admin-particles" id="adminParticles"></div>
@@ -254,7 +254,15 @@
         <div class="admin-header">
             <h1 class="admin-title">Centro de Control</h1>
             <p class="admin-subtitle">Panel de Administración</p>
-            <p class="admin-welcome">¡Bienvenido, <?= htmlspecialchars($_SESSION['usuario']['nombre']) ?>!</p>
+            <p class="admin-welcome">¡Bienvenido, <?php
+                if (isset($_SESSION['usuario']['nombre'])) {
+                    echo htmlspecialchars($_SESSION['usuario']['nombre']);
+                } elseif (isset($_SESSION['user_nombre'])) {
+                    echo htmlspecialchars($_SESSION['user_nombre']);
+                } else {
+                    echo 'Administrador';
+                }
+            ?>!</p>
         </div>
 
         <!-- Estadísticas principales -->
