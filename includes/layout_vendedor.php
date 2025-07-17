@@ -1,16 +1,10 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once 'middleware_unificado.php';
+middlewareVendedor();
 
-// Usar las variables de sesión user_nombre si están disponibles, sino usar usuario['nombre']
-if (isset($_SESSION['user_nombre'])) {
-    $nombre = htmlspecialchars($_SESSION['user_nombre']);
-} elseif (isset($_SESSION['usuario']['nombre'])) {
-    $nombre = htmlspecialchars($_SESSION['usuario']['nombre']);
-} else {
-    $nombre = 'Vendedor';
-}
+// Obtener información del usuario actual
+$usuario = obtenerUsuarioActual();
+$nombre = $usuario['nombre'] ?? 'Vendedor';
 
 // Obtener la página actual para resaltar el enlace activo
 $current_page = basename($_SERVER['PHP_SELF']);
