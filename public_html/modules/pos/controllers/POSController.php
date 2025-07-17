@@ -71,9 +71,20 @@ class POSController {
             if (!$userId && isset($_SESSION['user_id'])) {
                 $userId = $_SESSION['user_id'];
             }
-            
-            // For now, we'll handle session management later - using NULL for sesion_caja_id
-            // Generate a simple document number (this should be more sophisticated in production)
+
+            // Obtener el id de la sesión de caja abierta si no se pasa $sessionId
+            if (!$sessionId && $userId) {
+                $stmtCaja = $this->db->prepare("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' LIMIT 1");
+                $stmtCaja->execute([$userId]);
+                $rowCaja = $stmtCaja->fetch(\PDO::FETCH_ASSOC);
+                if ($rowCaja && isset($rowCaja['id'])) {
+                    $sessionId = $rowCaja['id'];
+                } else {
+                    throw new \Exception('No hay sesión de caja abierta para este usuario.');
+                }
+            }
+
+            // Generar número de documento
             $documentNumber = strtoupper($documentType) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
             $stmt = $this->db->prepare("INSERT INTO ventas (usuario_id, total, metodo_pago, tipo_documento, numero_documento, fecha, sesion_caja_id) 
