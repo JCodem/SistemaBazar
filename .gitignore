@@ -2,8 +2,10 @@
 includes/db.php
 includes/query.sql
 
+
 # Insertar usuario.
 public_html/insert_user.php
+public_html/auth.php
 # Archivos de entorno si usas más adelante
 .env
 
@@ -13,3 +15,4 @@ public_html/insert_user.php
 *.tmp
 .DS_Store
 Thumbs.db
+    
