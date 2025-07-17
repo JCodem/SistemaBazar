@@ -367,12 +367,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
   <!-- Header del usuario -->
-  <div class="sidebar-header">
-    <div class="user-avatar">
+
+  <div class="sidebar-header" style="position:relative;">
+    <div class="user-avatar" id="userMenuToggle" style="cursor:pointer;">
       <?= strtoupper(substr($nombre, 0, 1)) ?>
     </div>
-    <h4 class="user-name"><?= $nombre ?></h4>
+    <h4 class="user-name" id="userMenuToggleName" style="cursor:pointer;"><?= $nombre ?></h4>
     <p class="user-role">Vendedor</p>
+    <!-- Dropdown menu -->
+    <div id="userDropdown" style="display:none; position:absolute; top:90px; left:50%; transform:translateX(-50%); background:#222b3a; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:2000;">
+      <a href="/logout.php" class="nav-link logout-link" style="display:flex; align-items:center; gap:0.5rem; padding:1rem; color:#ff6b6b; text-decoration:none; border-radius:12px;">
+        <i class="bi bi-box-arrow-right nav-icon"></i>
+        <span class="nav-text">Cerrar Sesión</span>
+      </a>
+    </div>
   </div>
 
   <!-- Navegación principal -->
@@ -389,15 +397,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </div>
   </div>
 
-  <!-- Sección de logout -->
-  <div class="logout-section">
+  <!-- Sección de logout (oculta, ahora en el menú de usuario) -->
+  <!-- <div class="logout-section">
     <div class="nav-item">
-      <a href="../logout.php" class="nav-link logout-link">
+      <a href="/logout.php" class="nav-link logout-link">
         <i class="bi bi-box-arrow-right nav-icon"></i>
         <span class="nav-text">Cerrar Sesión</span>
       </a>
     </div>
-  </div>
+  </div> -->
 </div>
 
 <!-- Inicio del contenido -->
@@ -405,7 +413,23 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <div class="content-wrapper">
 
 <script>
+// Menú de usuario dropdown
 document.addEventListener('DOMContentLoaded', function() {
+    const userMenuToggle = document.getElementById('userMenuToggle');
+    const userMenuToggleName = document.getElementById('userMenuToggleName');
+    const userDropdown = document.getElementById('userDropdown');
+    function toggleUserDropdown(e) {
+        e.stopPropagation();
+        userDropdown.style.display = (userDropdown.style.display === 'block') ? 'none' : 'block';
+    }
+    userMenuToggle.addEventListener('click', toggleUserDropdown);
+    userMenuToggleName.addEventListener('click', toggleUserDropdown);
+    document.addEventListener('click', function(e) {
+        if (userDropdown.style.display === 'block' && !userDropdown.contains(e.target) && e.target !== userMenuToggle && e.target !== userMenuToggleName) {
+            userDropdown.style.display = 'none';
+        }
+    });
+
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');

@@ -384,7 +384,13 @@ $sql = "SELECT v.id, v.fecha, v.total, v.metodo_pago, v.tipo_documento, v.numero
         LIMIT ? OFFSET ?";
 
 $stmt = $conn->prepare($sql);
-$stmt->execute(array_merge($params, [$limit, $offset]));
+$paramIndex = 1;
+foreach ($params as $param) {
+    $stmt->bindValue($paramIndex++, $param);
+}
+$stmt->bindValue($paramIndex++, (int)$limit, PDO::PARAM_INT);
+$stmt->bindValue($paramIndex++, (int)$offset, PDO::PARAM_INT);
+$stmt->execute();
 $ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get users for filter dropdown
