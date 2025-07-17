@@ -6,11 +6,10 @@ $correo = $_POST['correo'] ?? '';
 $contraseña = $_POST['contraseña'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
 try {
-
-// Usar PDO con parámetros nombrados
-$stmt = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
-$stmt->execute([':correo' => $correo]);
-$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Usar PDO con parámetros nombrados
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
+    $stmt->execute(['correo' => $correo]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Agregar depuración para ver qué está fallando
     if (!$usuario) {
@@ -31,8 +30,8 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
             $_SESSION['mensaje'] = "Redirigiendo a admin...";
             header('Location: ./admin/dashboard.php');
         } else {
-            $_SESSION['mensaje'] = "Redirigiendo a vendedor...";
-            header('Location: ./vendedor/dashboard.php');
+            $_SESSION['mensaje'] = "Redirigiendo a punto de venta...";
+            header('Location: ./modules/pos/index.php');
         }
         exit;
     } else {

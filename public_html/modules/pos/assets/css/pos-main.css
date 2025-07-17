@@ -1,0 +1,10 @@
+/* POS Main Stylesheet - Imports all POS styles */
+
+/* Import order matters - variables first, then base, then components */
+@import url('./pos-variables.css');
+@import url('./pos-base.css');
+@import url('./pos-components.css');
+@import url('./pos-search.css');
+@import url('./pos-payment.css');
+@import url('./pos-quantity.css');
+@import url('./pos-layout.css');

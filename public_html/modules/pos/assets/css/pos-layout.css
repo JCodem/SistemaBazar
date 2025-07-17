@@ -1,0 +1,42 @@
+/* POS Layout Styles - Specific layout components */
+
+/* Checkout section height constraint */
+.checkout-section {
+  max-height: 700px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.checkout-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.checkout-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.checkout-section::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.checkout-section::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem;
+  }
+  
+  .pos-card {
+    margin-bottom: 1.5rem;
+  }
+  
+  .pos-btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+}

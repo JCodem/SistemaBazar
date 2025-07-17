@@ -1,9 +1,13 @@
 <?php 
 require_once '../../includes/layout_admin.php';
+require_once '../../includes/funciones.php'; // CSRF helpers
 require_once '../../includes/db.php';
 
 // Manejar acciones POST
+// CSRF validation para formularios POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    session_start();
+    verify_csrf_token($_POST['csrf_token'] ?? '');
     $action = $_POST['action'] ?? '';
     
     switch ($action) {
@@ -16,9 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (!empty($nombre) && $precio >= 0 && $stock >= 0) {
                 $stmt = $conn->prepare("INSERT INTO productos (nombre, precio, stock, sku, codigo_barras) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("siiss", $nombre, $precio, $stock, $sku, $codigo_barras);
-                
-                if ($stmt->execute()) {
+                if ($stmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras])) {
                     $success = "Producto creado exitosamente";
                 } else {
                     $error = "Error al crear producto: " . $conn->error;
@@ -38,9 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($id > 0 && !empty($nombre) && $precio >= 0 && $stock >= 0) {
                 $stmt = $conn->prepare("UPDATE productos SET nombre = ?, precio = ?, stock = ?, sku = ?, codigo_barras = ? WHERE id = ?");
-                $stmt->bind_param("siissi", $nombre, $precio, $stock, $sku, $codigo_barras, $id);
-                
-                if ($stmt->execute()) {
+                if ($stmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras, $id])) {
                     $success = "Producto actualizado exitosamente";
                 } else {
                     $error = "Error al actualizar producto: " . $conn->error;
@@ -52,85 +52,205 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)$_POST['id'];
             if ($id > 0) {
                 $stmt = $conn->prepare("DELETE FROM productos WHERE id = ?");
-                $stmt->bind_param("i", $id);
-                
-                if ($stmt->execute()) {
+                if ($stmt->execute([$id])) {
                     $success = "Producto eliminado exitosamente";
                 } else {
                     $error = "Error al eliminar producto: " . $conn->error;
                 }
             }
             break;
+            
+        case 'bulk_upload':
+            if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
+                $csvFile = $_FILES['csv_file']['tmp_name'];
+                $updateExisting = isset($_POST['update_existing']);
+                
+                if (($handle = fopen($csvFile, 'r')) !== FALSE) {
+                    $rowCount = 0;
+                    $successCount = 0;
+                    $errorCount = 0;
+                    $errors = [];
+                    
+                    // Skip header row if exists
+                    $firstRow = fgetcsv($handle);
+                    if ($firstRow && strtolower($firstRow[0]) === 'nombre') {
+                        // Skip header
+                    } else {
+                        // Reset file pointer to beginning
+                        rewind($handle);
+                    }
+                    
+                    while (($data = fgetcsv($handle)) !== FALSE) {
+                        $rowCount++;
+                        
+                        if (count($data) < 3) {
+                            $errors[] = "Fila $rowCount: Datos insuficientes";
+                            $errorCount++;
+                            continue;
+                        }
+                        
+                        $nombre = trim($data[0] ?? '');
+                        $precio = (int)($data[1] ?? 0);
+                        $stock = (int)($data[2] ?? 0);
+                        $sku = trim($data[3] ?? '');
+                        $codigo_barras = trim($data[4] ?? '');
+                        
+                        if (empty($nombre) || $precio < 0 || $stock < 0) {
+                            $errors[] = "Fila $rowCount: Datos inválidos (nombre: '$nombre', precio: $precio, stock: $stock)";
+                            $errorCount++;
+                            continue;
+                        }
+                        
+                        try {
+                            if ($updateExisting && !empty($sku)) {
+                                // Check if product exists by SKU
+                                $checkStmt = $conn->prepare("SELECT id FROM productos WHERE sku = ?");
+                                $checkStmt->execute([$sku]);
+                                
+                                if ($checkStmt->fetch()) {
+                                    // Update existing product
+                                    $updateStmt = $conn->prepare("UPDATE productos SET nombre = ?, precio = ?, stock = ?, codigo_barras = ? WHERE sku = ?");
+                                    $updateStmt->execute([$nombre, $precio, $stock, $codigo_barras, $sku]);
+                                } else {
+                                    // Insert new product
+                                    $insertStmt = $conn->prepare("INSERT INTO productos (nombre, precio, stock, sku, codigo_barras) VALUES (?, ?, ?, ?, ?)");
+                                    $insertStmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras]);
+                                }
+                            } else {
+                                // Always insert new product
+                                $insertStmt = $conn->prepare("INSERT INTO productos (nombre, precio, stock, sku, codigo_barras) VALUES (?, ?, ?, ?, ?)");
+                                $insertStmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras]);
+                            }
+                            
+                            $successCount++;
+                        } catch (Exception $e) {
+                            $errors[] = "Fila $rowCount: Error al procesar - " . $e->getMessage();
+                            $errorCount++;
+                        }
+                    }
+                    
+                    fclose($handle);
+                    
+                    if ($successCount > 0) {
+                        $success = "Procesamiento completado: $successCount productos procesados exitosamente";
+                        if ($errorCount > 0) {
+                            $success .= ", $errorCount errores encontrados";
+                        }
+                    } else {
+                        $error = "No se pudo procesar ningún producto. Errores: " . implode('; ', array_slice($errors, 0, 3));
+                    }
+                } else {
+                    $error = "Error al leer el archivo CSV";
+                }
+            } else {
+                $error = "Error al subir el archivo";
+            }
+            break;
     }
 }
 
-// Obtener productos con paginación
+// Obtener productos con paginación y ordenamiento
 $page = (int)($_GET['page'] ?? 1);
-$limit = 10;
+$limit = 50;
 $offset = ($page - 1) * $limit;
 $search = $_GET['search'] ?? '';
+$sort_by = $_GET['sort_by'] ?? 'nombre';
+$sort_order = $_GET['sort_order'] ?? 'ASC';
+$stock_filter = $_GET['stock_filter'] ?? '';
 
-$where = '';
+// Validar columnas de ordenamiento
+$valid_sorts = ['id', 'nombre', 'precio', 'stock', 'sku', 'codigo_barras'];
+if (!in_array($sort_by, $valid_sorts)) {
+    $sort_by = 'nombre';
+}
+$sort_order = strtoupper($sort_order) === 'DESC' ? 'DESC' : 'ASC';
+
+$where_conditions = [];
 $params = [];
-$types = '';
 
 if (!empty($search)) {
-    $where = "WHERE nombre LIKE ? OR sku LIKE ? OR codigo_barras LIKE ?";
+    $where_conditions[] = "(nombre LIKE ? OR sku LIKE ? OR codigo_barras LIKE ?)";
     $searchTerm = "%$search%";
-    $params = [$searchTerm, $searchTerm, $searchTerm];
-    $types = 'sss';
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
 }
+
+// Filtro de stock
+if (!empty($stock_filter)) {
+    switch ($stock_filter) {
+        case 'bajo':
+            $where_conditions[] = "stock <= 10";
+            break;
+        case 'medio':
+            $where_conditions[] = "stock > 10 AND stock <= 50";
+            break;
+        case 'alto':
+            $where_conditions[] = "stock > 50";
+            break;
+        case 'agotado':
+            $where_conditions[] = "stock = 0";
+            break;
+    }
+}
+
+$where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
 
 // Contar total de productos
-$countQuery = "SELECT COUNT(*) as total FROM productos $where";
+$countQuery = "SELECT COUNT(*) as total FROM productos $where_clause";
 $countStmt = $conn->prepare($countQuery);
-if (!empty($params)) {
-    $countStmt->bind_param($types, ...$params);
-}
-$countStmt->execute();
-$totalProducts = $countStmt->get_result()->fetch_assoc()['total'];
-$totalPages = ceil($totalProducts / $limit);
+$countStmt->execute($params);
+$totalProducts = (int)$countStmt->fetchColumn();
+$totalPages = (int)ceil($totalProducts / $limit);
 
-// Obtener productos
-$query = "SELECT * FROM productos $where ORDER BY nombre ASC LIMIT ? OFFSET ?";
+// Obtener productos con ordenamiento
+$query = "SELECT * FROM productos $where_clause ORDER BY $sort_by $sort_order LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
-if (!empty($params)) {
-    $params[] = $limit;
-    $params[] = $offset;
-    $types .= 'ii';
-    $stmt->bind_param($types, ...$params);
-} else {
-    $stmt->bind_param('ii', $limit, $offset);
-}
-$stmt->execute();
-$productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$execParams = array_merge($params, [$limit, $offset]);
+$stmt->execute($execParams);
+$productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Estadísticas de stock
+$statsQuery = "SELECT 
+    COUNT(*) as total_productos,
+    SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) as productos_agotados,
+    SUM(CASE WHEN stock <= 10 AND stock > 0 THEN 1 ELSE 0 END) as stock_bajo,
+    SUM(CASE WHEN stock > 10 AND stock <= 50 THEN 1 ELSE 0 END) as stock_medio,
+    SUM(CASE WHEN stock > 50 THEN 1 ELSE 0 END) as stock_alto,
+    AVG(precio) as precio_promedio,
+    SUM(stock * precio) as valor_inventario
+FROM productos";
+$statsStmt = $conn->prepare($statsQuery);
+$statsStmt->execute();
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <style>
+/* Página de productos - Compatible con tema claro/oscuro */
 .productos-container {
     padding: 0;
 }
 
 .productos-header {
-    background: linear-gradient(135deg, rgba(45, 27, 105, 0.1), rgba(17, 153, 142, 0.1));
-    border-radius: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
     padding: 2rem;
     margin-bottom: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .productos-title {
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 2.2rem;
-    font-weight: 300;
+    font-weight: 700;
     margin: 0;
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -143,22 +263,148 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     flex-wrap: wrap;
 }
 
-.search-input {
-    background: rgba(30, 30, 40, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.search-input, .filter-select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 0.75rem 1rem;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.search-input {
     min-width: 250px;
 }
 
+.filter-select {
+    min-width: 150px;
+}
+
 .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
+}
+
+.search-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-light);
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto 1rem;
+    color: white;
+}
+
+.stat-icon.total { 
+    background: var(--accent-primary);
+}
+.stat-icon.total + .stat-card::before { 
+    background: var(--accent-primary);
+}
+
+.stat-icon.agotado { 
+    background: var(--accent-danger);
+}
+.stat-icon.agotado + .stat-card::before { 
+    background: var(--accent-danger);
+}
+
+.stat-icon.bajo { 
+    background: var(--accent-warning);
+}
+.stat-icon.bajo + .stat-card::before { 
+    background: var(--accent-warning);
+}
+
+.stat-icon.medio { 
+    background: var(--accent-info);
+}
+.stat-icon.medio + .stat-card::before { 
+    background: var(--accent-info);
+}
+
+.stat-icon.alto { 
+    background: var(--accent-success);
+}
+.stat-icon.alto + .stat-card::before { 
+    background: var(--accent-success);
+}
+
+.stat-icon.valor { 
+    background: var(--accent-secondary);
+}
+.stat-icon.valor + .stat-card::before { 
+    background: var(--accent-secondary);
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #48dbfb, #0abde3);
+    background: var(--accent-primary);
     border: none;
     border-radius: 12px;
     padding: 0.75rem 1.5rem;
@@ -168,15 +414,123 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.3s ease;
+    transition: var(--transition);
     cursor: pointer;
 }
 
 .btn-primary:hover {
+    background: var(--accent-primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(72, 219, 251, 0.3);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
     color: white;
     text-decoration: none;
+}
+
+.btn-bulk {
+    background: var(--accent-secondary);
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.btn-bulk:hover {
+    background: var(--accent-secondary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+.table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    box-shadow: var(--shadow-sm);
+}
+
+.productos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.productos-table th, .productos-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.productos-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.productos-table th:hover {
+    background: var(--bg-secondary);
+}
+
+.productos-table td {
+    color: var(--text-primary);
+}
+
+.productos-table tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.sort-icon {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.stock-alert {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stock-agotado {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.stock-bajo {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.stock-medio {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.stock-alto {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .products-grid {
@@ -187,20 +541,20 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 .product-card {
-    background: linear-gradient(135deg, rgba(30, 30, 40, 0.9), rgba(45, 27, 105, 0.3));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: var(--transition);
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-sm);
 }
 
 .product-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    transform: translateY(-4px);
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-md);
 }
 
 .product-header {
@@ -211,7 +565,7 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 .product-name {
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0;
@@ -229,21 +583,22 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     border: none;
     font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition);
+    color: white;
+    font-weight: 500;
 }
 
 .btn-edit {
-    background: linear-gradient(135deg, #feca57, #ff9f43);
-    color: white;
+    background: var(--accent-warning);
 }
 
 .btn-delete {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-    color: white;
+    background: var(--accent-danger);
 }
 
 .btn-sm:hover {
     transform: scale(1.05);
+    opacity: 0.9;
 }
 
 .product-info {
@@ -260,14 +615,15 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 .info-label {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 .info-value {
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 600;
     font-size: 1rem;
 }
@@ -282,21 +638,21 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 .stock-high {
-    background: rgba(0, 255, 127, 0.2);
-    color: #00ff7f;
-    border: 1px solid rgba(0, 255, 127, 0.3);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .stock-medium {
-    background: rgba(254, 202, 87, 0.2);
-    color: #feca57;
-    border: 1px solid rgba(254, 202, 87, 0.3);
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .stock-low {
-    background: rgba(255, 107, 107, 0.2);
-    color: #ff6b6b;
-    border: 1px solid rgba(255, 107, 107, 0.3);
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .pagination {
@@ -308,18 +664,20 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 .page-btn {
     padding: 0.5rem 1rem;
-    background: rgba(30, 30, 40, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: var(--transition);
+    font-weight: 500;
 }
 
 .page-btn:hover, .page-btn.active {
-    background: linear-gradient(135deg, #48dbfb, #0abde3);
+    background: var(--accent-primary);
     color: white;
     text-decoration: none;
+    border-color: var(--accent-primary);
 }
 
 /* Modal Styles */
@@ -331,20 +689,20 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
 }
 
 .modal-content {
-    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(45, 27, 105, 0.3));
+    background: var(--bg-card);
     margin: 5% auto;
     padding: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
     width: 90%;
     max-width: 500px;
     position: relative;
-    backdrop-filter: blur(15px);
+    box-shadow: var(--shadow-lg);
 }
 
 .modal-header {
@@ -352,55 +710,107 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .modal-title {
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 1.5rem;
     font-weight: 600;
     margin: 0;
 }
 
 .close {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 2rem;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
     background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition);
+    padding: 0.5rem;
+    border-radius: 8px;
 }
 
 .close:hover {
-    color: white;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .form-label {
     display: block;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
     margin-bottom: 0.5rem;
+    color: var(--text-primary);
     font-weight: 500;
 }
 
 .form-control {
     width: 100%;
-    background: rgba(30, 30, 40, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
     padding: 0.75rem;
-    color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: var(--transition);
+    box-sizing: border-box;
 }
 
 .form-control:focus {
     outline: none;
-    border-color: #48dbfb;
-    box-shadow: 0 0 0 2px rgba(72, 219, 251, 0.3);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.btn-delete {
+    background: var(--accent-danger);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.btn-delete:hover {
+    background: var(--accent-danger-hover);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .form-actions {
@@ -408,20 +818,44 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     gap: 1rem;
     justify-content: flex-end;
     margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
 }
 
-.btn-secondary {
-    background: rgba(100, 100, 100, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.75rem 1.5rem;
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.form-check-input {
+    width: 16px;
+    height: 16px;
+}
+
+.form-check-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.alert {
+    padding: 1rem;
     border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    font-weight: 500;
 }
 
-.btn-secondary:hover {
-    background: rgba(100, 100, 100, 0.5);
+.alert-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 /* Responsive */
@@ -429,19 +863,35 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     .productos-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 1.5rem;
     }
     
     .search-controls {
-        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
     }
     
-    .search-input {
+    .search-input, .filter-select {
         min-width: auto;
         width: 100%;
     }
     
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
     .products-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .table-container {
+        padding: 1rem;
+    }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+        padding: 1.5rem;
     }
     
     .product-info {
@@ -449,24 +899,154 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }
 
-.alert {
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-    border: 1px solid;
-    backdrop-filter: blur(10px);
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .productos-table th,
+    .productos-table td {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
 }
 
-.alert-success {
-    background: rgba(0, 255, 127, 0.1);
-    border-color: rgba(0, 255, 127, 0.3);
-    color: #00ff7f;
+/* Animaciones y efectos de carga */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.alert-error {
-    background: rgba(255, 107, 107, 0.1);
-    border-color: rgba(255, 107, 107, 0.3);
-    color: #ff6b6b;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-loading {
+    pointer-events: none;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+/* Mejoras en la navegación de páginas */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition);
+    font-weight: 500;
+    min-width: 44px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.page-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    text-decoration: none;
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.page-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.page-btn:active {
+    transform: translateY(0);
+}
+
+/* Efectos de carga para la tabla */
+.table-loading {
+    position: relative;
+}
+
+.table-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(var(--bg-primary-rgb), 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* Scroll suave para navegación */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Indicador de posición en la tabla */
+.table-container {
+    position: relative;
+    scroll-margin-top: 2rem;
+}
+
+.table-position-indicator {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 2px 2px 0 0;
+}
+
+.table-container.highlight .table-position-indicator {
+    opacity: 1;
+}
+
+/* Mejoras en las columnas ordenables */
+.productos-table th {
+    position: relative;
+}
+
+.productos-table th:hover {
+    background: var(--bg-secondary);
+}
+
+.productos-table th.sorting {
+    background: var(--bg-secondary);
+}
+
+.sort-icon {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+.productos-table th:hover .sort-icon {
+    opacity: 1;
 }
 </style>
 
@@ -475,15 +1055,72 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <div class="productos-header">
         <h1 class="productos-title">Gestión de Productos</h1>
         <div class="search-controls">
-            <form method="GET" style="display: flex; gap: 1rem; align-items: center;">
-                <input type="text" name="search" class="search-input" placeholder="Buscar por nombre, SKU o código de barras..." value="<?= htmlspecialchars($search) ?>">
+            <form method="GET" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <input type="text" name="search" class="search-input" placeholder="Buscar por nombre, SKU o código..." value="<?= htmlspecialchars($search) ?>">
+                
+                <select name="stock_filter" class="filter-select">
+                    <option value="">Todos los stocks</option>
+                    <option value="agotado" <?= $stock_filter === 'agotado' ? 'selected' : '' ?>>Agotado</option>
+                    <option value="bajo" <?= $stock_filter === 'bajo' ? 'selected' : '' ?>>Stock Bajo (≤10)</option>
+                    <option value="medio" <?= $stock_filter === 'medio' ? 'selected' : '' ?>>Stock Medio (11-50)</option>
+                    <option value="alto" <?= $stock_filter === 'alto' ? 'selected' : '' ?>>Stock Alto (>50)</option>
+                </select>
+                
+                <!-- Hidden sort parameters -->
+                <input type="hidden" name="sort_by" value="<?= htmlspecialchars($sort_by) ?>">
+                <input type="hidden" name="sort_order" value="<?= htmlspecialchars($sort_order) ?>">
+                
                 <button type="submit" class="btn-primary">
                     <i class="bi bi-search"></i> Buscar
                 </button>
             </form>
+            
             <button class="btn-primary" onclick="openCreateModal()">
                 <i class="bi bi-plus-circle"></i> Nuevo Producto
             </button>
+            
+            <button class="btn-bulk" onclick="openBulkModal()">
+                <i class="bi bi-upload"></i> Ingreso Masivo
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas de Inventario -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon total">📦</div>
+            <div class="stat-value"><?= number_format($stats['total_productos']) ?></div>
+            <div class="stat-label">Total Productos</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon agotado">⛔</div>
+            <div class="stat-value"><?= number_format($stats['productos_agotados']) ?></div>
+            <div class="stat-label">Productos Agotados</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon bajo">⚠️</div>
+            <div class="stat-value"><?= number_format($stats['stock_bajo']) ?></div>
+            <div class="stat-label">Stock Bajo</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon medio">📊</div>
+            <div class="stat-value"><?= number_format($stats['stock_medio']) ?></div>
+            <div class="stat-label">Stock Medio</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon alto">✅</div>
+            <div class="stat-value"><?= number_format($stats['stock_alto']) ?></div>
+            <div class="stat-label">Stock Alto</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon valor">💎</div>
+            <div class="stat-value">$<?= number_format($stats['valor_inventario'], 0, ',', '.') ?></div>
+            <div class="stat-label">Valor Inventario</div>
         </div>
     </div>
 
@@ -500,61 +1137,119 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     <?php endif; ?>
 
-    <!-- Grid de productos -->
-    <div class="products-grid">
-        <?php foreach ($productos as $producto): ?>
-            <div class="product-card">
-                <div class="product-header">
-                    <h3 class="product-name"><?= htmlspecialchars($producto['nombre']) ?></h3>
-                    <div class="product-actions">
-                        <button class="btn-sm btn-edit" onclick="openEditModal(<?= htmlspecialchars(json_encode($producto)) ?>)">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn-sm btn-delete" onclick="confirmDelete(<?= $producto['id'] ?>, '<?= htmlspecialchars($producto['nombre']) ?>')">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="product-info">
-                    <div class="info-item">
-                        <span class="info-label">Precio</span>
-                        <span class="info-value">$<?= number_format($producto['precio'], 0, ',', '.') ?></span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Stock</span>
-                        <span class="stock-badge <?= $producto['stock'] <= 5 ? 'stock-low' : ($producto['stock'] <= 20 ? 'stock-medium' : 'stock-high') ?>">
-                            <?= $producto['stock'] ?> unidades
+    <!-- Tabla de productos con ordenamiento -->
+    <div class="table-container">
+        <h3 style="color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-table"></i> 
+            Productos (<?= number_format($totalProducts) ?> encontrados)
+        </h3>
+        
+        <table class="productos-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('id')">
+                        ID 
+                        <span class="sort-icon">
+                            <?= $sort_by === 'id' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
                         </span>
-                    </div>
-                    <?php if (!empty($producto['sku'])): ?>
-                    <div class="info-item">
-                        <span class="info-label">SKU</span>
-                        <span class="info-value"><?= htmlspecialchars($producto['sku']) ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($producto['codigo_barras'])): ?>
-                    <div class="info-item">
-                        <span class="info-label">Código de Barras</span>
-                        <span class="info-value"><?= htmlspecialchars($producto['codigo_barras']) ?></span>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
+                    </th>
+                    <th onclick="sortTable('nombre')">
+                        Nombre
+                        <span class="sort-icon">
+                            <?= $sort_by === 'nombre' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
+                        </span>
+                    </th>
+                    <th onclick="sortTable('precio')">
+                        Precio
+                        <span class="sort-icon">
+                            <?= $sort_by === 'precio' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
+                        </span>
+                    </th>
+                    <th onclick="sortTable('stock')">
+                        Stock
+                        <span class="sort-icon">
+                            <?= $sort_by === 'stock' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
+                        </span>
+                    </th>
+                    <th onclick="sortTable('sku')">
+                        SKU
+                        <span class="sort-icon">
+                            <?= $sort_by === 'sku' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
+                        </span>
+                    </th>
+                    <th onclick="sortTable('codigo_barras')">
+                        Código de Barras
+                        <span class="sort-icon">
+                            <?= $sort_by === 'codigo_barras' ? ($sort_order === 'ASC' ? '↑' : '↓') : '↕' ?>
+                        </span>
+                    </th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (empty($productos)): ?>
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+                        No se encontraron productos con los filtros aplicados
+                    </td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($productos as $producto): ?>
+                    <?php
+                    $stockClass = '';
+                    $stockIcon = '';
+                    if ($producto['stock'] == 0) {
+                        $stockClass = 'stock-agotado';
+                        $stockIcon = '⛔';
+                    } elseif ($producto['stock'] <= 10) {
+                        $stockClass = 'stock-bajo';
+                        $stockIcon = '⚠️';
+                    } elseif ($producto['stock'] <= 50) {
+                        $stockClass = 'stock-medio';
+                        $stockIcon = '📊';
+                    } else {
+                        $stockClass = 'stock-alto';
+                        $stockIcon = '✅';
+                    }
+                    ?>
+                    <tr>
+                        <td><strong>#<?= htmlspecialchars($producto['id']) ?></strong></td>
+                        <td><?= htmlspecialchars($producto['nombre']) ?></td>
+                        <td><strong>$<?= number_format($producto['precio'], 0, ',', '.') ?></strong></td>
+                        <td>
+                            <span class="stock-alert <?= $stockClass ?>">
+                                <?= $stockIcon ?> <?= htmlspecialchars($producto['stock']) ?>
+                            </span>
+                        </td>
+                        <td><code><?= htmlspecialchars($producto['sku'] ?? '') ?></code></td>
+                        <td><code><?= htmlspecialchars($producto['codigo_barras'] ?? '') ?></code></td>
+                        <td>
+                            <button class="btn-sm btn-edit" onclick="openEditModal(<?= htmlspecialchars(json_encode($producto)) ?>)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-sm btn-delete" onclick="confirmDelete(<?= $producto['id'] ?>, '<?= htmlspecialchars($producto['nombre']) ?>')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
 
-    <!-- Paginación -->
-    <?php if ($totalPages > 1): ?>
+        <!-- Paginación -->
+        <?php if ($totalPages > 1): ?>
         <div class="pagination">
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" 
-                   class="page-btn <?= $i == $page ? 'active' : '' ?>">
+                <a class="page-btn <?= $i == $page ? 'active' : '' ?>" 
+                   href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>">
                     <?= $i ?>
                 </a>
             <?php endfor; ?>
         </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Modal para crear/editar producto -->
@@ -566,6 +1261,7 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
         
         <form id="productForm" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
             <input type="hidden" name="action" id="formAction" value="create">
             <input type="hidden" name="id" id="productId">
             
@@ -610,12 +1306,13 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             <button class="close" onclick="closeDeleteModal()">&times;</button>
         </div>
         
-        <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 2rem;">
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">
             ¿Estás seguro de que deseas eliminar el producto "<span id="deleteProductName"></span>"?
             Esta acción no se puede deshacer.
         </p>
         
         <form id="deleteForm" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" id="deleteProductId">
             
@@ -627,7 +1324,75 @@ $productos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 </div>
 
+<!-- Modal para ingreso masivo -->
+<div id="bulkModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Ingreso Masivo de Productos</h2>
+            <button class="close" onclick="closeBulkModal()">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <h4 style="color: var(--text-primary); margin-bottom: 1rem;">Formato CSV</h4>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                El archivo CSV debe tener las siguientes columnas en orden:
+            </p>
+            <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+                <code style="color: var(--accent-primary);">nombre,precio,stock,sku,codigo_barras</code>
+            </div>
+            
+            <h5 style="color: var(--text-primary); margin-bottom: 0.5rem;">Ejemplo:</h5>
+            <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+                <code style="color: var(--accent-success);">
+                    Coca Cola 350ml,1500,100,COC350,7801234567890<br>
+                    Pan Integral,800,50,PAN001,7801234567891<br>
+                    Leche Entera 1L,1200,75,LEC1L,7801234567892
+                </code>
+            </div>
+        </div>
+        
+        <form id="bulkForm" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+            <input type="hidden" name="action" value="bulk_upload">
+            
+            <div class="form-group">
+                <label class="form-label" for="csv_file">Archivo CSV *</label>
+                <input type="file" name="csv_file" id="csv_file" class="form-control" 
+                       accept=".csv" required>
+                <small style="color: var(--text-muted); font-size: 0.8rem;">
+                    Solo archivos CSV. Máximo 5MB.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary);">
+                    <input type="checkbox" name="update_existing" value="1" 
+                           style="margin: 0; transform: scale(1.2);">
+                    Actualizar productos existentes (basado en SKU)
+                </label>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeBulkModal()">Cancelar</button>
+                <button type="submit" class="btn-bulk">
+                    <i class="bi bi-upload"></i> Procesar Archivo
+                </button>
+            </div>
+        </form>
+        
+        <div id="bulkProgress" style="display: none; margin-top: 1rem;">
+            <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <p style="color: var(--text-primary); margin: 0;">Procesando archivo...</p>
+                <div style="background: var(--border-color); height: 8px; border-radius: 4px; margin-top: 0.5rem; overflow: hidden;">
+                    <div id="progressBar" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-success)); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Funciones de modal
 function openCreateModal() {
     document.getElementById('modalTitle').textContent = 'Nuevo Producto';
     document.getElementById('formAction').value = 'create';
@@ -652,6 +1417,16 @@ function closeModal() {
     document.getElementById('productModal').style.display = 'none';
 }
 
+function openBulkModal() {
+    document.getElementById('bulkModal').style.display = 'block';
+}
+
+function closeBulkModal() {
+    document.getElementById('bulkModal').style.display = 'none';
+    document.getElementById('bulkForm').reset();
+    document.getElementById('bulkProgress').style.display = 'none';
+}
+
 function confirmDelete(id, nombre) {
     document.getElementById('deleteProductId').value = id;
     document.getElementById('deleteProductName').textContent = nombre;
@@ -662,21 +1437,94 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').style.display = 'none';
 }
 
-// Cerrar modal al hacer clic fuera
-window.onclick = function(event) {
-    const productModal = document.getElementById('productModal');
-    const deleteModal = document.getElementById('deleteModal');
+function sortTable(column) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort_by');
+    const currentOrder = urlParams.get('sort_order');
     
-    if (event.target == productModal) {
-        productModal.style.display = 'none';
+    let newOrder = 'ASC';
+    if (currentSort === column && currentOrder === 'ASC') {
+        newOrder = 'DESC';
     }
-    if (event.target == deleteModal) {
-        deleteModal.style.display = 'none';
-    }
+    
+    urlParams.set('sort_by', column);
+    urlParams.set('sort_order', newOrder);
+    urlParams.delete('page'); // Reset to first page when sorting
+    
+    window.location.search = urlParams.toString();
 }
 
-// Auto-hide alerts
+// Función mejorada para navegación de páginas
+function goToPage(page) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('page', page);
+    
+    window.location.search = urlParams.toString();
+}
+
+// Handle bulk upload form
+document.getElementById('bulkForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csv_file');
+    if (!fileInput.files.length) {
+        alert('Por favor selecciona un archivo CSV');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+        alert('El archivo es demasiado grande. Máximo 5MB.');
+        return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Por favor selecciona un archivo CSV válido');
+        return;
+    }
+    
+    // Show progress
+    document.getElementById('bulkProgress').style.display = 'block';
+    
+    // Simulate progress (replace with actual upload logic)
+    let progress = 0;
+    const progressBar = document.getElementById('progressBar');
+    const interval = setInterval(() => {
+        progress += 10;
+        progressBar.style.width = progress + '%';
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            // Submit the form
+            e.target.submit();
+        }
+    }, 100);
+});
+
+// Auto-submit search form on filter change
 document.addEventListener('DOMContentLoaded', function() {
+    const stockFilter = document.querySelector('select[name="stock_filter"]');
+    if (stockFilter) {
+        stockFilter.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Agregar event listeners a todos los enlaces de paginación
+    const pageLinks = document.querySelectorAll('.page-btn');
+    pageLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Extraer el número de página del href
+            const url = new URL(this.href);
+            const page = url.searchParams.get('page') || 1;
+            
+            goToPage(page);
+        });
+    });
+    
+    // Auto-hide alerts
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
@@ -686,4 +1534,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
 });
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const productModal = document.getElementById('productModal');
+    const deleteModal = document.getElementById('deleteModal');
+    const bulkModal = document.getElementById('bulkModal');
+    
+    if (event.target == productModal) {
+        productModal.style.display = 'none';
+    }
+    if (event.target == deleteModal) {
+        deleteModal.style.display = 'none';
+    }
+    if (event.target == bulkModal) {
+        bulkModal.style.display = 'none';
+    }
+}
 </script>

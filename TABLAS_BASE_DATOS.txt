@@ -1,0 +1,72 @@
+TABLAS DE LA BASE DE DATOS - SISTEMA BAZAR POS
+==============================================
+
+1. USUARIOS
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - nombre (VARCHAR)
+   - correo (VARCHAR, UNIQUE)
+   - rut (VARCHAR)
+   - rol (ENUM: 'vendedor', 'jefe', 'admin')
+   - contrasena (VARCHAR, HASHED)
+   - created_at (DATETIME)
+   - updated_at (DATETIME)
+
+2. PRODUCTOS
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - nombre (VARCHAR)
+   - precio (DECIMAL)
+   - stock (INT)
+   - sku (VARCHAR, UNIQUE)
+   - codigo_barras (VARCHAR)
+   - created_at (DATETIME)
+   - updated_at (DATETIME)
+
+3. VENTAS
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - usuario_id (FOREIGN KEY → usuarios.id)
+   - total (DECIMAL)
+   - metodo_pago (ENUM: 'efectivo', 'tarjeta', 'transferencia')
+   - tipo_documento (ENUM: 'boleta', 'factura')
+   - numero_documento (VARCHAR)
+   - fecha (DATETIME)
+   - sesion_caja_id (FOREIGN KEY → sesiones_caja.id)
+
+4. VENTA_DETALLES
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - venta_id (FOREIGN KEY → ventas.id)
+   - producto_id (FOREIGN KEY → productos.id)
+   - cantidad (INT)
+   - precio_unitario (DECIMAL)
+   - subtotal (DECIMAL)
+
+5. SESIONES_CAJA
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - usuario_id (FOREIGN KEY → usuarios.id)
+   - fecha_apertura (DATETIME)
+   - fecha_cierre (DATETIME, NULL)
+   - monto_inicial (DECIMAL)
+   - monto_final (DECIMAL, NULL)
+   - total_ventas (DECIMAL, DEFAULT 0)
+   - estado (ENUM: 'abierta', 'cerrada')
+   - observaciones (TEXT)
+
+6. ACTIVIDADES (OPCIONAL - PARA LOGS)
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - usuario_id (FOREIGN KEY → usuarios.id)
+   - accion (VARCHAR)
+   - descripcion (TEXT)
+   - fecha (DATETIME)
+
+7. CONFIGURACION (OPCIONAL - PARA PARAMETROS DEL SISTEMA)
+   - id (PRIMARY KEY, AUTO_INCREMENT)
+   - clave (VARCHAR, UNIQUE)
+   - valor (TEXT)
+   - descripcion (TEXT)
+   - fecha_actualizacion (DATETIME)
+
+NOTAS IMPORTANTES:
+- La tabla PRODUCTOS debe tener registros para que el POS funcione
+- La tabla SESIONES_CAJA controla si un vendedor puede realizar ventas
+- Un vendedor solo puede vender si tiene una sesión de caja ABIERTA
+- Los números de documento (boleta/factura) deben ser únicos y secuenciales
+- Los precios están en formato DECIMAL(10,2) para manejar centavos

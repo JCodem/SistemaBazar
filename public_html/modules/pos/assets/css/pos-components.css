@@ -1,0 +1,180 @@
+/* POS Components - Cards, inputs, buttons, tables */
+
+/* POS Cards */
+.pos-card {
+  background: var(--light-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-medium);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pos-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-heavy);
+}
+
+.pos-card-header {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+  color: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.pos-card-header.info {
+  background: linear-gradient(135deg, var(--success-color), #059669);
+}
+
+.pos-card-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* POS Inputs */
+.pos-input {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  background: var(--light-color);
+}
+
+.pos-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.pos-input-lg {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* POS Buttons */
+.pos-btn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+}
+
+.pos-btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.pos-btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.pos-btn-success {
+  background: var(--success-color);
+  color: white;
+}
+
+.pos-btn-success:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.pos-btn-outline {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.pos-btn-outline:hover {
+  background: var(--secondary-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.pos-btn-lg {
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+}
+
+.pos-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* POS Tables */
+.pos-table {
+  background: var(--light-color);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.pos-table .table {
+  margin: 0;
+}
+
+.pos-table .table th {
+  background: var(--secondary-color);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.pos-table .table td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+}
+
+/* POS Badges */
+.pos-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.pos-badge-primary {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+}
+
+.pos-badge-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+}
+
+/* Statistics Cards */
+.stats-card {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--light-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.stats-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.stats-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}

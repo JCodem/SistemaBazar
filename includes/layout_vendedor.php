@@ -19,6 +19,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- POS CSS -->
+  <link rel="stylesheet" href="../modules/pos/assets/css/pos.css">
   <style>
     :root {
       --sidebar-width: 280px;
@@ -376,55 +378,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <!-- Navegación principal -->
   <div class="sidebar-nav">
     <div class="nav-section">
-      <div class="nav-section-title">Principal</div>
+      <div class="nav-section-title">Sistema Bazar</div>
       
       <div class="nav-item">
-        <a href="dashboard.php" class="nav-link <?= $current_page === 'dashboard.php' ? 'active' : '' ?>">
-          <i class="bi bi-house-door nav-icon"></i>
-          <span class="nav-text">Panel Principal</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <a href="pos.php" class="nav-link <?= $current_page === 'pos.php' ? 'active' : '' ?>">
+        <a href="../modules/pos/" class="nav-link <?= in_array($current_page, ['dashboard.php', 'pos.php', 'index.php']) ? 'active' : '' ?>">
           <i class="bi bi-cart3 nav-icon"></i>
           <span class="nav-text">Punto de Venta</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-section-title">Gestión</div>
-      
-      <div class="nav-item">
-        <a href="inventario.php" class="nav-link <?= $current_page === 'inventario.php' ? 'active' : '' ?>">
-          <i class="bi bi-box-seam nav-icon"></i>
-          <span class="nav-text">Inventario</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <a href="historial_ventas.php" class="nav-link <?= $current_page === 'historial_ventas.php' ? 'active' : '' ?>">
-          <i class="bi bi-graph-up nav-icon"></i>
-          <span class="nav-text">Historial de Ventas</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-section-title">Reportes</div>
-      
-      <div class="nav-item">
-        <a href="descargar_reporte.php" class="nav-link <?= $current_page === 'descargar_reporte.php' ? 'active' : '' ?>">
-          <i class="bi bi-download nav-icon"></i>
-          <span class="nav-text">Reporte Diario</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <a href="perfil.php" class="nav-link <?= $current_page === 'perfil.php' ? 'active' : '' ?>">
-          <i class="bi bi-person-circle nav-icon"></i>
-          <span class="nav-text">Mi Perfil</span>
         </a>
       </div>
     </div>

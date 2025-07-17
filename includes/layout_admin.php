@@ -19,16 +19,63 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Script de mantenimiento de posición de scroll -->
+  <script src="assets/js/scroll-position.js" defer></script>
   <style>
     :root {
       --sidebar-width: 280px;
-      --sidebar-bg: linear-gradient(135deg, #2d1b69 0%, #11998e 50%, #0f0f0f 100%);
-      --sidebar-hover: rgba(255, 255, 255, 0.1);
-      --sidebar-active: rgba(255, 255, 255, 0.2);
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --shadow-sidebar: 0 0 30px rgba(0, 0, 0, 0.3);
-      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      
+      /* Dark theme (default) */
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --bg-active: #475569;
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      
+      --border-color: #334155;
+      --border-light: #475569;
+      
+      --accent-primary: #3b82f6;
+      --accent-secondary: #8b5cf6;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      /* Light theme */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #e2e8f0;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f5f9;
+      --bg-active: #e2e8f0;
+      
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      
+      --border-color: #e2e8f0;
+      --border-light: #cbd5e1;
+      
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     }
 
     * {
@@ -42,16 +89,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
       min-height: 100vh;
       display: flex;
       overflow-x: hidden;
-      background-color: #f8fafc;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: var(--transition);
     }
 
     .sidebar {
       width: var(--sidebar-width);
-      background: var(--sidebar-bg);
-      color: var(--text-primary);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
       flex-shrink: 0;
       padding: 0;
-      box-shadow: var(--shadow-sidebar);
       position: fixed;
       left: 0;
       top: 0;
@@ -60,7 +108,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       display: flex;
       flex-direction: column;
       z-index: 1000;
-      transition: var(--transition);
+      transition: var(--transition-slow);
       transform: translateX(0);
     }
 
@@ -68,66 +116,26 @@ $current_page = basename($_SERVER['PHP_SELF']);
       transform: translateX(-100%);
     }
 
-    .sidebar::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      pointer-events: none;
-      animation: starGlow 8s ease-in-out infinite;
-    }
-
-    @keyframes starGlow {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.6; }
-    }
-
     .sidebar-header {
       padding: 2rem 1.5rem 1.5rem;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border-color);
       position: relative;
     }
 
     .user-avatar {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #ff6b6b, #ffd93d);
-      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 16px;
       margin: 0 auto 1rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 600;
       color: white;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       position: relative;
       overflow: hidden;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .user-avatar::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: rotate(45deg);
-      animation: shimmer 3s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
     }
 
     .user-name {
@@ -135,12 +143,36 @@ $current_page = basename($_SERVER['PHP_SELF']);
       font-weight: 600;
       margin: 0;
       color: var(--text-primary);
+      text-align: center;
     }
 
     .user-role {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
+      font-size: 0.875rem;
+      color: var(--text-muted);
       margin-top: 0.25rem;
+      text-align: center;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-secondary);
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+      color: var(--accent-primary);
     }
 
     .sidebar-nav {
@@ -150,61 +182,49 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .nav-section {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     .nav-section-title {
-      padding: 0 1.5rem 0.5rem;
+      padding: 0 1.5rem 0.75rem;
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-secondary);
+      color: var(--text-muted);
     }
 
     .nav-item {
-      margin: 0.25rem 0.75rem;
-      border-radius: 12px;
+      margin: 0.25rem 1rem;
+      border-radius: 8px;
       overflow: hidden;
-      transition: var(--transition);
     }
 
     .nav-link {
-      color: var(--text-primary);
-      padding: 0.875rem 1rem;
+      color: var(--text-secondary);
+      padding: 0.75rem 1rem;
       display: flex;
       align-items: center;
       text-decoration: none;
       transition: var(--transition);
       position: relative;
-      border-radius: 12px;
+      border-radius: 8px;
       font-weight: 500;
+      font-size: 0.875rem;
     }
 
     .nav-link:hover {
-      background: var(--sidebar-hover);
+      background: var(--bg-hover);
       color: var(--text-primary);
-      transform: translateX(4px);
     }
 
     .nav-link.active {
-      background: var(--sidebar-active);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .nav-link.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, #ff6b6b, #feca57);
-      border-radius: 0 4px 4px 0;
+      background: var(--accent-primary);
+      color: white;
     }
 
     .nav-icon {
-      font-size: 1.2rem;
+      font-size: 1.125rem;
       margin-right: 0.75rem;
       width: 20px;
       text-align: center;
@@ -212,40 +232,35 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .nav-text {
-      font-size: 0.95rem;
+      font-size: 0.875rem;
       font-weight: 500;
-    }
-
-    .nav-link:hover .nav-icon {
-      transform: scale(1.1);
     }
 
     .logout-section {
       flex-shrink: 0;
-      padding: 1rem 0.75rem 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
       margin-top: auto;
     }
 
     .logout-link {
-      color: #ff6b6b !important;
-      background: rgba(255, 107, 107, 0.1);
-      border: 1px solid rgba(255, 107, 107, 0.3);
+      color: var(--accent-danger) !important;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
     .logout-link:hover {
-      background: rgba(255, 107, 107, 0.2) !important;
-      color: #ff5252 !important;
-      transform: translateX(4px);
+      background: rgba(239, 68, 68, 0.2) !important;
+      color: var(--accent-danger) !important;
     }
 
     .main-content {
       flex-grow: 1;
-      background: linear-gradient(135deg, #2d1b69 0%, #11998e 30%, #0f0f0f 100%);
+      background: var(--bg-primary);
       min-height: 100vh;
       position: relative;
       margin-left: var(--sidebar-width);
-      transition: var(--transition);
+      transition: var(--transition-slow);
       width: calc(100% - var(--sidebar-width));
     }
 
@@ -254,26 +269,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
       width: 100%;
     }
 
-    /* Botón toggle para la sidebar */
     .sidebar-toggle {
       position: fixed;
       top: 20px;
       left: 20px;
       z-index: 1001;
-      background: rgba(15, 15, 25, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      color: white;
+      color: var(--text-primary);
       padding: 10px;
       cursor: pointer;
       transition: var(--transition);
-      backdrop-filter: blur(10px);
       display: block;
+      box-shadow: var(--shadow);
     }
 
     .sidebar-toggle:hover {
-      background: rgba(25, 25, 35, 0.9);
-      transform: scale(1.05);
+      background: var(--bg-hover);
+      box-shadow: var(--shadow-md);
     }
 
     .content-wrapper {
@@ -281,21 +295,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       max-width: 1400px;
       margin: 0 auto;
       min-height: calc(100vh - 4rem);
-      box-sizing: border-box;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      transition: var(--transition);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Prevenir solapamientos */
-    body {
-      overflow-x: hidden;
-    }
-
-    .sidebar, .main-content {
       box-sizing: border-box;
     }
 
@@ -327,7 +326,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       
       .sidebar-toggle {
         left: calc(var(--sidebar-width) + 20px);
-        transition: left var(--transition);
+        transition: left var(--transition-slow);
       }
       
       .sidebar.collapsed + .sidebar-toggle {
@@ -335,22 +334,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
       }
     }
 
-    /* Scroll personalizado para la sidebar */
+    /* Scroll personalizado */
     .sidebar::-webkit-scrollbar {
       width: 4px;
     }
 
     .sidebar::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--bg-secondary);
     }
 
     .sidebar::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+      background: var(--border-light);
       border-radius: 4px;
     }
 
     .sidebar::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.5);
+      background: var(--text-muted);
     }
   </style>
 </head>
@@ -365,6 +364,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <div class="sidebar" id="sidebar">
   <!-- Header del usuario -->
   <div class="sidebar-header">
+    <div class="theme-toggle" id="themeToggle" title="Cambiar tema">
+      <i class="bi bi-moon-fill" id="themeIcon"></i>
+    </div>
     <div class="user-avatar">
       <?= strtoupper(substr($nombre, 0, 1)) ?>
     </div>
@@ -434,7 +436,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <div class="nav-item">
         <a href="seguridad.php" class="nav-link <?= $current_page === 'seguridad.php' ? 'active' : '' ?>">
           <i class="bi bi-shield-check nav-icon"></i>
-          <span class="nav-text">Seguridad</span>
+          <span class="nav-text">Seguridad y Configuración</span>
         </a>
       </div>
 
@@ -467,19 +469,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
     let sidebarVisible = window.innerWidth > 768;
+
+    // Theme management
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeIcon(currentTheme);
+
+    function updateThemeIcon(theme) {
+        if (theme === 'light') {
+            themeIcon.className = 'bi bi-sun-fill';
+        } else {
+            themeIcon.className = 'bi bi-moon-fill';
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+        
+        // Add smooth transition effect
+        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    }
 
     // Toggle sidebar
     function toggleSidebar() {
         if (window.innerWidth <= 768) {
-            // Mobile: Show/hide sidebar
             sidebar.classList.toggle('show');
         } else {
-            // Desktop: Collapse/expand sidebar
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
             
-            // Cambiar icono del botón
             const icon = sidebarToggle.querySelector('i');
             if (sidebar.classList.contains('collapsed')) {
                 icon.className = 'bi bi-arrow-right';
@@ -489,10 +518,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Event listener para el botón toggle
+    // Event listeners
     sidebarToggle.addEventListener('click', toggleSidebar);
+    themeToggle.addEventListener('click', toggleTheme);
 
-    // Cerrar sidebar en mobile cuando se hace clic fuera
+    // Close sidebar on mobile when clicking outside
     document.addEventListener('click', function(e) {
         if (window.innerWidth <= 768) {
             if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
@@ -501,41 +531,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Manejar resize de ventana
+    // Handle window resize
     window.addEventListener('resize', function() {
         const newWidth = window.innerWidth;
         
         if (newWidth > 768 && !sidebarVisible) {
-            // Cambio de mobile a desktop
             sidebar.classList.remove('show');
             sidebar.classList.remove('collapsed');
             mainContent.classList.remove('expanded');
             sidebarVisible = true;
         } else if (newWidth <= 768 && sidebarVisible) {
-            // Cambio de desktop a mobile
             sidebar.classList.remove('collapsed', 'show');
             mainContent.classList.remove('expanded');
             sidebarVisible = false;
         }
     });
 
-    // Mostrar/ocultar botón toggle según el tamaño de pantalla
-    function updateToggleVisibility() {
-        if (window.innerWidth <= 768) {
-            sidebarToggle.classList.add('visible');
-        } else {
-            sidebarToggle.classList.add('visible'); // Siempre visible para permitir colapsar
-        }
-    }
-
-    updateToggleVisibility();
-    window.addEventListener('resize', updateToggleVisibility);
-
-    // Animación suave para los enlaces
+    // Smooth hover effects for nav links
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
         link.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateX(8px)';
+            if (!this.classList.contains('active')) {
+                this.style.transform = 'translateX(4px)';
+            }
         });
         
         link.addEventListener('mouseleave', function() {
