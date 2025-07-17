@@ -155,7 +155,7 @@ session_start();
             padding: 0.75rem 1rem;
             font-size: 0.9rem;
             transition: all 0.3s ease;
-            color: var(--text-primary);
+            color: #fff !important;
         }
 
         .form-control::placeholder {
