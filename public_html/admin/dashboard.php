@@ -382,6 +382,7 @@ $datosGraficas = obtenerDatosGraficas($conn);
             <span class="stat-value"><?= $estadisticas['productos_stock'] ?></span>
             <div class="stat-label">Productos en Stock</div>
             <div class="stat-change negative">de <?= $estadisticas['total_productos'] ?> total</div>
+
         </div>
         
         <div class="stat-card animate-up" style="animation-delay: 0.4s">

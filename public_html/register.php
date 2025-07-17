@@ -1,4 +1,10 @@
 <?php
+function escribir_log($mensaje) {
+    $fecha = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'CLI';
+    $linea = "[$fecha] [$ip] $mensaje\n";
+    file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
+}
 session_start();
 ?>
 
@@ -21,11 +27,13 @@ session_start();
   <h3 class="text-center mb-4">Registro de Usuario</h3>
 
   <?php if (isset($_SESSION['registro_error'])): ?>
+    <?php escribir_log("REGISTRO ERROR: " . $_SESSION['registro_error']); ?>
     <div class="alert alert-danger"><?= $_SESSION['registro_error'] ?></div>
     <?php unset($_SESSION['registro_error']); ?>
   <?php endif; ?>
 
   <?php if (isset($_SESSION['registro_exito'])): ?>
+    <?php escribir_log("REGISTRO OK: Nuevo usuario registrado"); ?>
     <div class="alert alert-success"><?= $_SESSION['registro_exito'] ?><br>Redirigiendo al login...</div>
     <?php unset($_SESSION['registro_exito']); ?>
   <?php endif; ?>
@@ -68,4 +76,6 @@ session_start();
 </div>
 
 </body>
+
+
 </html>

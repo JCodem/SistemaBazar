@@ -26,7 +26,7 @@ $sql = "SELECT id, nombre, precio, stock, sku, codigo_barras";
 // Verificar si existen las columnas opcionales
 $checkColumns = $conn->query("SHOW COLUMNS FROM productos");
 $existingColumns = [];
-while ($row = $checkColumns->fetch_assoc()) {
+while ($row = $checkColumns->fetch(PDO::FETCH_ASSOC)) {
     $existingColumns[] = $row['Field'];
 }
 
@@ -85,20 +85,32 @@ try {
     if (!empty($params)) {
         $stmt = $conn->prepare($sql);
         if ($stmt) {
-            $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $productos = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
+            // Construir array asociativo para parámetros nombrados
+            $parametros = [];
+            $i = 1;
+            foreach ($params as $param) {
+                $parametros[":param{$i}"] = $param;
+                $i++;
+            }
+            // Reemplazar los ? por :paramN en la consulta
+            $sqlConParams = $sql;
+            $count = 1;
+            while (strpos($sqlConParams, '?') !== false) {
+                $sqlConParams = preg_replace('/\?/', ":param{$count}", $sqlConParams, 1);
+                $count++;
+            }
+            $stmt = $conn->prepare($sqlConParams);
+            $stmt->execute($parametros);
+            $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            throw new Exception("Error preparando la consulta: " . $conn->error);
+            throw new Exception("Error preparando la consulta");
         }
     } else {
-        $result = $conn->query($sql);
-        if ($result) {
-            $productos = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt = $conn->query($sql);
+        if ($stmt) {
+            $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            throw new Exception("Error ejecutando la consulta: " . $conn->error);
+            throw new Exception("Error ejecutando la consulta");
         }
     }
     
@@ -107,7 +119,7 @@ try {
     if ($hasCategoria) {
         $resultCategorias = $conn->query("SELECT DISTINCT categoria FROM productos WHERE categoria IS NOT NULL AND categoria != '' ORDER BY categoria");
         if ($resultCategorias) {
-            while ($row = $resultCategorias->fetch_assoc()) {
+            while ($row = $resultCategorias->fetch(PDO::FETCH_ASSOC)) {
                 $categorias[] = $row['categoria'];
             }
         }

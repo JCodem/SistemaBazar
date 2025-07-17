@@ -1,4 +1,5 @@
 <?php
+
 require_once 'middleware_unificado.php';
 middlewareAdmin();
 
@@ -8,6 +9,7 @@ $nombre = $usuario['nombre'] ?? 'Administrador';
 
 // Obtener la página actual para resaltar el enlace activo
 $current_page = basename($_SERVER['PHP_SELF']);
+
 ?>
 
 <!DOCTYPE html>
@@ -356,6 +358,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </head>
 <body>
 
+
 <!-- Botón toggle para la sidebar -->
 <button class="sidebar-toggle" id="sidebarToggle">
   <i class="bi bi-list" style="font-size: 1.2rem;"></i>
@@ -456,6 +459,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       </a>
     </div>
   </div>
+
 </div>
 
 <!-- Inicio del contenido -->
