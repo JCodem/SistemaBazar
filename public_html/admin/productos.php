@@ -6,7 +6,6 @@ require_once '../../includes/db.php';
 // Manejar acciones POST
 // CSRF validation para formularios POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    session_start();
     verify_csrf_token($_POST['csrf_token'] ?? '');
     $action = $_POST['action'] ?? '';
     

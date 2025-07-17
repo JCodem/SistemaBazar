@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test AJAX Ventas</title>
+</head>
+<body>
+    <h2>Test AJAX Endpoint</h2>
+    <button onclick="testAjax()">Test Sale Details (ID: 1)</button>
+    <div id="result"></div>
+
+    <script>
+    function testAjax() {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = 'Loading...';
+        
+        fetch('http://localhost/SistemaBazar/public_html/admin/ventas.php?action=get_sale_details&venta_id=1')
+            .then(response => {
+                console.log('Status:', response.status);
+                console.log('Content-Type:', response.headers.get('content-type'));
+                
+                return response.text();
+            })
+            .then(text => {
+                console.log('Response text:', text);
+                resultDiv.innerHTML = `<pre>${text}</pre>`;
+                
+                // Try to parse as JSON
+                try {
+                    const json = JSON.parse(text);
+                    resultDiv.innerHTML += `<br><strong>Parsed JSON:</strong><pre>${JSON.stringify(json, null, 2)}</pre>`;
+                } catch (e) {
+                    resultDiv.innerHTML += `<br><strong>JSON Parse Error:</strong> ${e.message}`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            });
+    }
+    </script>
+</body>
+</html>
