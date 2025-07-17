@@ -1,13 +1,4 @@
-<?php
-// Verificar si el usuario está autenticado
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../../public_html/login.php');
-    exit;
-}
+<?php // Vista parcial POS cargada vía layout_vendedor con middleware_unificado para autenticación y rol.
 
 // Usar las variables de sesión user_nombre si están disponibles, sino usar usuario['nombre']
 if (isset($_SESSION['user_nombre'])) {
@@ -19,18 +10,7 @@ if (isset($_SESSION['user_nombre'])) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Punto de Venta - Sistema Bazar</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/pos.css">
-  
-  <style>
+<?php // VISTA PARCIAL POS: se carga dentro del layout_vendedor.php. HTML y head removidos. ?>
     :root {
       --primary-color: #2563eb;
       --secondary-color: #f1f5f9;
@@ -818,7 +798,7 @@ if (isset($_SESSION['user_nombre'])) {
       formData.append('action', 'search');
       formData.append('query', query);
       
-      fetch('/SistemaBazar/modules/pos/ajax_handler.php', {
+      fetch('../../modules/pos/ajax_handler.php', {
         method: 'POST',
         body: formData
       })

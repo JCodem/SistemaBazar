@@ -1,0 +1,35 @@
+/* POS Payment Methods Styles */
+
+.payment-method-card {
+  display: block;
+  cursor: pointer;
+}
+
+.payment-method-card input[type="radio"] {
+  display: none;
+}
+
+.payment-method-content {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--light-color);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.payment-method-card:hover .payment-method-content {
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.02);
+}
+
+.payment-method-card input[type="radio"]:checked + .payment-method-content {
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.payment-detail {
+  display: none;
+}

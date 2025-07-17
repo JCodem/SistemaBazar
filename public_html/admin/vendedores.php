@@ -16,23 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (!empty($nombre) && !empty($correo) && !empty($rut) && !empty($contrasena)) {
                 // Verificar si el correo o RUT ya existen
-                $check = $conn->prepare("SELECT id FROM usuarios WHERE correo = ? OR rut = ?");
-                $check->bind_param("ss", $correo, $rut);
-                $check->execute();
-                
-                if ($check->get_result()->num_rows > 0) {
+                $checkStmt = $conn->prepare("SELECT id FROM usuarios WHERE correo = ? OR rut = ?");
+                $checkStmt->execute([$correo, $rut]);
+
+                if ($checkStmt->rowCount() > 0) {
                     $error = "El correo o RUT ya están registrados";
                 } else {
                     $contrasena_hash = password_hash($contrasena, PASSWORD_DEFAULT);
                     $created_at = date('Y-m-d H:i:s');
-                    
+
                     $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, rut, rol, contrasena, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssssss", $nombre, $correo, $rut, $rol, $contrasena_hash, $created_at, $created_at);
-                    
-                    if ($stmt->execute()) {
+                    if ($stmt->execute([$nombre, $correo, $rut, $rol, $contrasena_hash, $created_at, $created_at])) {
                         $success = "Usuario creado exitosamente";
                     } else {
-                        $error = "Error al crear usuario: " . $conn->error;
+                        $error = "Error al crear usuario: " . $stmt->errorInfo()[2];
                     }
                 }
             } else {
@@ -50,30 +47,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($id > 0 && !empty($nombre) && !empty($correo) && !empty($rut)) {
                 // Verificar si el correo o RUT ya existen en otros usuarios
-                $check = $conn->prepare("SELECT id FROM usuarios WHERE (correo = ? OR rut = ?) AND id != ?");
-                $check->bind_param("ssi", $correo, $rut, $id);
-                $check->execute();
-                
-                if ($check->get_result()->num_rows > 0) {
+                $checkStmt = $conn->prepare("SELECT id FROM usuarios WHERE (correo = ? OR rut = ?) AND id != ?");
+                $checkStmt->execute([$correo, $rut, $id]);
+
+                if ($checkStmt->rowCount() > 0) {
                     $error = "El correo o RUT ya están registrados por otro usuario";
                 } else {
                     $updated_at = date('Y-m-d H:i:s');
-                    
+
                     if (!empty($nueva_contrasena)) {
                         // Actualizar con nueva contraseña
                         $contrasena_hash = password_hash($nueva_contrasena, PASSWORD_DEFAULT);
-                        $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, correo = ?, rut = ?, rol = ?, contrasena = ?, updated_at = ? WHERE id = ?");
-                        $stmt->bind_param("ssssssi", $nombre, $correo, $rut, $rol, $contrasena_hash, $updated_at, $id);
+                        $stmt = $conn->prepare(
+                            "UPDATE usuarios SET nombre = ?, correo = ?, rut = ?, rol = ?, contrasena = ?, updated_at = ? WHERE id = ?"
+                        );
+                        $executed = $stmt->execute([$nombre, $correo, $rut, $rol, $contrasena_hash, $updated_at, $id]);
                     } else {
                         // Actualizar sin cambiar contraseña
-                        $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, correo = ?, rut = ?, rol = ?, updated_at = ? WHERE id = ?");
-                        $stmt->bind_param("sssssi", $nombre, $correo, $rut, $rol, $updated_at, $id);
+                        $stmt = $conn->prepare(
+                            "UPDATE usuarios SET nombre = ?, correo = ?, rut = ?, rol = ?, updated_at = ? WHERE id = ?"
+                        );
+                        $executed = $stmt->execute([$nombre, $correo, $rut, $rol, $updated_at, $id]);
                     }
-                    
-                    if ($stmt->execute()) {
+
+                    if ($executed) {
                         $success = "Usuario actualizado exitosamente";
                     } else {
-                        $error = "Error al actualizar usuario: " . $conn->error;
+                        $error = "Error al actualizar usuario: " . $stmt->errorInfo()[2];
                     }
                 }
             }
@@ -86,14 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($id == $_SESSION['user_id']) {
                     $error = "No puedes eliminar tu propio usuario";
                 } else {
-                    $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
-                    $stmt->bind_param("i", $id);
-                    
-                    if ($stmt->execute()) {
-                        $success = "Usuario eliminado exitosamente";
-                    } else {
-                        $error = "Error al eliminar usuario: " . $conn->error;
-                    }
+                $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
+                if ($stmt->execute([$id])) {
+                    $success = "Usuario eliminado exitosamente";
+                } else {
+                    $error = "Error al eliminar usuario: " . $stmt->errorInfo()[2];
+                }
                 }
             }
             break;
@@ -132,29 +130,19 @@ if (!empty($rol_filter)) {
 
 $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
 
-// Contar total de usuarios
-$countQuery = "SELECT COUNT(*) as total FROM usuarios $where_clause";
+// Contar usuarios con filtros
+$countQuery = "SELECT COUNT(*) FROM usuarios $where_clause";
 $countStmt = $conn->prepare($countQuery);
-if (!empty($params)) {
-    $countStmt->bind_param($types, ...$params);
-}
-$countStmt->execute();
-$totalUsers = $countStmt->get_result()->fetch_assoc()['total'];
-$totalPages = ceil($totalUsers / $limit);
+$countStmt->execute($params);
+$totalUsers = (int)$countStmt->fetchColumn();
+$totalPages = (int)ceil($totalUsers / $limit);
 
-// Obtener usuarios
+// Obtener usuarios con paginación
 $query = "SELECT id, nombre, correo, rut, rol, created_at, updated_at FROM usuarios $where_clause ORDER BY created_at DESC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
-if (!empty($params)) {
-    $params[] = $limit;
-    $params[] = $offset;
-    $types .= 'ii';
-    $stmt->bind_param($types, ...$params);
-} else {
-    $stmt->bind_param('ii', $limit, $offset);
-}
-$stmt->execute();
-$usuarios = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$execParams = array_merge($params, [$limit, $offset]);
+$stmt->execute($execParams);
+$usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Obtener estadísticas
 $statsQuery = "SELECT 
@@ -163,8 +151,9 @@ $statsQuery = "SELECT
     SUM(CASE WHEN rol = 'jefe' THEN 1 ELSE 0 END) as jefes,
     SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as nuevos_hoy
 FROM usuarios WHERE rol != 'admin'";
-$statsResult = $conn->query($statsQuery);
-$stats = $statsResult->fetch_assoc();
+$statsStmt = $conn->prepare($statsQuery);
+$statsStmt->execute();
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <style>

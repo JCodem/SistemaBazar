@@ -16,7 +16,7 @@ $rol = $_POST['rol'] ?? '';
 try {
     // Verifica si ya existe el correo
     $verificar = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
-    $verificar->execute([':correo' => $correo]);
+    $verificar->execute(['correo' => $correo]);
     $resultado = $verificar->fetch(PDO::FETCH_ASSOC);
 
     if ($resultado) {
@@ -34,11 +34,11 @@ try {
         VALUES (:correo, :contrasena, :nombre, :rut, :rol, NOW(), NOW())
     ");
     $stmt->execute([
-        ':correo' => $correo,
-        ':contrasena' => $hash,
-        ':nombre' => $nombre,
-        ':rut' => $rut,
-        ':rol' => $rol
+        'correo' => $correo,
+        'contrasena' => $hash,
+        'nombre' => $nombre,
+        'rut' => $rut,
+        'rol' => $rol
     ]);
 
     $_SESSION['registro_exito'] = "Usuario registrado correctamente.";

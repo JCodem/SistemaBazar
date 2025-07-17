@@ -7,6 +7,7 @@ function escribir_log($mensaje) {
     file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
 }
 session_start();
+require_once '../includes/funciones.php'; // CSRF helpers
 ?>
 
 <!DOCTYPE html>
@@ -300,6 +301,7 @@ session_start();
     <?php endif; ?>
 
     <form action="auth.php" method="POST">
+      <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
         <div class="mb-3">
             <label for="correo" class="form-label">Correo electrónico</label>
             <input type="email" name="correo" class="form-control" required placeholder="usuario@ejemplo.com">
