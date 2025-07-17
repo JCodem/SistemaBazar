@@ -6,7 +6,9 @@ require_once '../../includes/db.php';
 // Manejar acciones POST
 // CSRF validation para formularios POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     verify_csrf_token($_POST['csrf_token'] ?? '');
     $action = $_POST['action'] ?? '';
     
@@ -206,8 +208,14 @@ $totalPages = (int)ceil($totalProducts / $limit);
 // Obtener productos con ordenamiento
 $query = "SELECT * FROM productos $where_clause ORDER BY $sort_by $sort_order LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
-$execParams = array_merge($params, [$limit, $offset]);
-$stmt->execute($execParams);
+foreach ($params as $index => $value) {
+    $stmt->bindValue($index + 1, $value); // +1 porque los índices de PDO comienzan en 1
+}
+
+$stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+$stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+
+$stmt->execute();
 $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Estadísticas de stock
