@@ -1,6 +1,7 @@
 # Archivos de configuración sensibles
 includes/db.php
 includes/query.sql
+includes/log.txt
 
 
 # Insertar usuario.

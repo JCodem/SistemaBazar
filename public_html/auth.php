@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once '../includes/db.php';
@@ -14,6 +15,7 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Agregar depuración para ver qué está fallando
     if (!$usuario) {
+        escribir_log("LOGIN ERROR: Usuario no encontrado - Correo: $correo");
         $_SESSION['error'] = 'Usuario no encontrado con ese correo';
         header('Location: login.php');
         exit;
@@ -25,7 +27,7 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         $_SESSION['user_id'] = $usuario['id'];
         $_SESSION['user_nombre'] = $usuario['nombre'];
         $_SESSION['user_rol'] = $usuario['rol'];
-
+        escribir_log("LOGIN OK: Usuario ID {$usuario['id']} ({$usuario['correo']}) - Rol: {$usuario['rol']}");
         // Redireccionar según el rol - Usar rutas relativas
         if ($usuario['rol'] === 'jefe' || $usuario['rol'] === 'admin') {
             $_SESSION['mensaje'] = "Redirigiendo a admin...";
@@ -36,17 +38,27 @@ $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         }
         exit;
     } else {
+        escribir_log("LOGIN ERROR: Credenciales incorrectas para correo $correo");
         $_SESSION['error'] = 'Credenciales incorrectas';
         header('Location: login.php');
         exit;
     }
 
 } catch (Exception $e) {
+    escribir_log("LOGIN ERROR: Excepción para correo $correo - " . $e->getMessage());
     $_SESSION['error'] = "Error: " . $e->getMessage();
     header('Location: login.php');
     exit;
 }
 
- 
+ // Función para escribir logs
+
+function escribir_log($mensaje) {
+    $fecha = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'CLI';
+    $linea = "[$fecha] [$ip] $mensaje\n";
+    file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
+}
 
 ?>
+

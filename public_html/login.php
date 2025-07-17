@@ -1,4 +1,11 @@
 <?php
+// Función para escribir logs
+function escribir_log($mensaje) {
+    $fecha = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'CLI';
+    $linea = "[$fecha] [$ip] $mensaje\n";
+    file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
+}
 session_start();
 ?>
 
@@ -276,10 +283,12 @@ session_start();
         <h3 class="text-center">Iniciar Sesión</h3>
 
     <?php if (isset($_SESSION['error'])): ?>
+        <?php escribir_log("LOGIN UI ERROR: " . $_SESSION['error']); ?>
         <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
     <?php endif; ?>
     
     <?php if (isset($_SESSION['mensaje'])): ?>
+        <?php escribir_log("LOGIN UI MENSAJE: " . $_SESSION['mensaje']); ?>
         <div class="alert alert-info"><?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?></div>
     <?php endif; ?>
     
