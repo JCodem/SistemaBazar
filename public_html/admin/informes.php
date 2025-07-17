@@ -4,49 +4,107 @@ require_once '../../includes/db.php';
 
 // Obtener parámetros de filtro
 $fecha_inicio = $_GET['fecha_inicio'] ?? date('Y-m-d', strtotime('-30 days'));
+// Parámetro de filtro de documento: boleta, factura o vacío para ambos
 $fecha_fin = $_GET['fecha_fin'] ?? date('Y-m-d');
 $tipo_reporte = $_GET['tipo'] ?? 'ventas';
+// Parámetros de filtro
+$filtro_doc = $_GET['documento'] ?? '';
+// Exportación de datos: json o excel (csv)
+$export = $_GET['export'] ?? '';
+if ($export) {
+    // Cargar datos según tipo
+    if ($tipo_reporte === 'ventas') {
+        $exportData = obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin, $filtro_doc);
+    } else {
+        $exportData = obtenerDatosInventario($conn);
+    }
+    if ($export === 'json') {
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="reporte.json"');
+        echo json_encode($exportData, JSON_PRETTY_PRINT);
+        exit;
+    }
+    if ($export === 'excel') {
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="reporte.csv"');
+        $out = fopen('php://output', 'w');
+        if ($tipo_reporte === 'ventas') {
+            fputcsv($out, ['Fecha','Transacciones','Total Ventas']);
+            foreach ($exportData['ventas_diarias'] as $row) {
+                fputcsv($out, [$row['fecha'],$row['transacciones'],$row['total_ventas']]);
+            }
+        } else {
+            fputcsv($out, ['Total Productos','Stock Total','Valor Inventario','Stock Bajo','Sin Stock']);
+            $r = $exportData['resumen_inventario'];
+            fputcsv($out, [$r['total_productos'],$r['stock_total'],$r['valor_inventario'],$r['productos_stock_bajo'],$r['productos_sin_stock']]);
+        }
+        fclose($out);
+        exit;
+    }
+}
 
 // Función para obtener datos de ventas
-function obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin) {
+function obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin, $filtro_doc = '') {
     $datos = [];
     
     // Ventas totales por día
+    $filterSQL = $filtro_doc ? " AND tipo_documento = ?" : '';
     $query = "SELECT DATE(fecha) as fecha, COUNT(*) as transacciones, SUM(total) as total_ventas
-              FROM ventas 
-              WHERE fecha BETWEEN ? AND ? 
-              GROUP BY DATE(fecha) 
+              FROM ventas
+              WHERE DATE(fecha) BETWEEN ? AND ?" . $filterSQL . "
+              GROUP BY DATE(fecha)
               ORDER BY fecha";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_fin);
-    $stmt->execute();
-    $datos['ventas_diarias'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $params = [$fecha_inicio, $fecha_fin];
+    if ($filtro_doc) { $params[] = $filtro_doc; }
+    $stmt->execute($params);
+    $datos['ventas_diarias'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Productos más vendidos
     $query = "SELECT p.nombre, SUM(vd.cantidad) as cantidad_vendida, SUM(vd.subtotal) as total_vendido
               FROM productos p
               JOIN venta_detalles vd ON p.id = vd.producto_id
               JOIN ventas v ON vd.venta_id = v.id
-              WHERE v.fecha BETWEEN ? AND ?
+              WHERE DATE(v.fecha) BETWEEN ? AND ?
+              GROUP BY p.id, p.nombre
+              ORDER BY cantidad_vendida DESC
+              LIMIT 10";
+    // Productos más vendidos
+    // Usar la tabla real 'venta_detalles'
+    // Productos más vendidos
+    $filterSQL = $filtro_doc ? " AND v.tipo_documento = ?" : '';
+    $query = "SELECT p.nombre, SUM(vd.cantidad) as cantidad_vendida, SUM(vd.subtotal) as total_vendido
+              FROM productos p
+              JOIN venta_detalles vd ON p.id = vd.producto_id
+              JOIN ventas v ON vd.venta_id = v.id
+              WHERE DATE(v.fecha) BETWEEN ? AND ?" . $filterSQL . "
               GROUP BY p.id, p.nombre
               ORDER BY cantidad_vendida DESC
               LIMIT 10";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_fin);
-    $stmt->execute();
-    $datos['productos_vendidos'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $params = [$fecha_inicio, $fecha_fin]; if ($filtro_doc) { $params[] = $filtro_doc; }
+    $stmt->execute($params);
+    $datos['productos_vendidos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Ventas por vendedor
     $query = "SELECT u.nombre, COUNT(v.id) as num_ventas, SUM(v.total) as total_vendido
               FROM usuarios u
               JOIN ventas v ON u.id = v.usuario_id
-              WHERE v.fecha BETWEEN ? AND ?
+              WHERE DATE(v.fecha) BETWEEN ? AND ?
+              GROUP BY u.id, u.nombre
+              ORDER BY total_vendido DESC";
+    // Ventas por vendedor
+    $filterSQL = $filtro_doc ? " AND DATE(v.fecha) BETWEEN ? AND ? AND v.tipo_documento = ?" : '';
+    $query = "SELECT u.nombre, COUNT(v.id) as num_ventas, SUM(v.total) as total_vendido
+              FROM usuarios u
+              JOIN ventas v ON u.id = v.usuario_id
+              WHERE DATE(v.fecha) BETWEEN ? AND ?" . ($filtro_doc ? " AND v.tipo_documento = ?" : '') . "
               GROUP BY u.id, u.nombre
               ORDER BY total_vendido DESC";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_fin);
-    $stmt->execute();
-    $datos['ventas_vendedor'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $params = [$fecha_inicio, $fecha_fin]; if ($filtro_doc) { $params[] = $filtro_doc; }
+    $stmt->execute($params);
+    $datos['ventas_vendedor'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Resumen general
     $query = "SELECT 
@@ -56,11 +114,16 @@ function obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin) {
                 MIN(total) as venta_minima,
                 MAX(total) as venta_maxima
               FROM ventas 
-              WHERE fecha BETWEEN ? AND ?";
+              WHERE DATE(fecha) BETWEEN ? AND ?";
+    // Resumen general
+    $filterSQL = $filtro_doc ? " AND tipo_documento = ?" : '';
+    $query = "SELECT COUNT(*) as total_transacciones, SUM(total) as total_ventas, AVG(total) as promedio_venta, MIN(total) as venta_minima, MAX(total) as venta_maxima
+              FROM ventas
+              WHERE DATE(fecha) BETWEEN ? AND ?" . $filterSQL;
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_fin);
-    $stmt->execute();
-    $datos['resumen'] = $stmt->get_result()->fetch_assoc();
+    $params = [$fecha_inicio, $fecha_fin]; if ($filtro_doc) { $params[] = $filtro_doc; }
+    $stmt->execute($params);
+    $datos['resumen'] = $stmt->fetch(PDO::FETCH_ASSOC);
     
     return $datos;
 }
@@ -77,16 +140,16 @@ function obtenerDatosInventario($conn) {
                 SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) as productos_sin_stock,
                 SUM(precio * stock) as valor_inventario
               FROM productos";
-    $result = $conn->query($query);
-    $datos['resumen_inventario'] = $result->fetch_assoc();
+    $stmt = $conn->query($query);
+    $datos['resumen_inventario'] = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // Productos con stock bajo
     $query = "SELECT nombre, stock, precio, (precio * stock) as valor_stock
               FROM productos 
               WHERE stock <= 5 
               ORDER BY stock ASC";
-    $result = $conn->query($query);
-    $datos['stock_bajo'] = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt = $conn->query($query);
+    $datos['stock_bajo'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Distribución de stock
     $query = "SELECT 
@@ -100,15 +163,15 @@ function obtenerDatosInventario($conn) {
               FROM productos
               GROUP BY categoria_stock
               ORDER BY cantidad_productos DESC";
-    $result = $conn->query($query);
-    $datos['distribucion_stock'] = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt = $conn->query($query);
+    $datos['distribucion_stock'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     return $datos;
 }
 
 $datosReporte = [];
 if ($tipo_reporte === 'ventas') {
-    $datosReporte = obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin);
+    $datosReporte = obtenerDatosVentas($conn, $fecha_inicio, $fecha_fin, $filtro_doc);
 } elseif ($tipo_reporte === 'inventario') {
     $datosReporte = obtenerDatosInventario($conn);
 }
@@ -406,6 +469,14 @@ if ($tipo_reporte === 'ventas') {
                     <input type="date" name="fecha_fin" class="filter-input" value="<?= $fecha_fin ?>">
                 </div>
                 
+                <div class="filter-group">
+                    <label class="filter-label">Documento</label>
+                    <select name="documento" class="filter-select">
+                        <option value="" <?= $filtro_doc === '' ? 'selected' : '' ?>>Todos</option>
+                        <option value="boleta" <?= $filtro_doc === 'boleta' ? 'selected' : '' ?>>Boleta</option>
+                        <option value="factura" <?= $filtro_doc === 'factura' ? 'selected' : '' ?>>Factura</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn-generate">
                     <i class="bi bi-bar-chart-line"></i> Generar Reporte
                 </button>

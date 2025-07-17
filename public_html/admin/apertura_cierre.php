@@ -1,6 +1,65 @@
 <?php 
-require_once '../../includes/layout_admin.php';
+// Handle exports first, before any output
 require_once '../../includes/db.php';
+require_once '../../includes/funciones.php'; // CSRF helpers
+
+// Function to get filtered sales data (defined at top level)
+function obtenerVentasDia($conn, $fecha_ini, $fecha_fin, $vendedor_id = '') {
+    $filter = '';
+    $params = [$fecha_ini, $fecha_fin];
+    if ($vendedor_id) { 
+        $filter = ' AND v.usuario_id = ?'; 
+        $params[] = $vendedor_id; 
+    }
+    $sql = "SELECT v.id as boleta_id, DATE(v.fecha) as fecha, v.total, v.tipo_documento, v.numero_documento, u.nombre as vendedor
+            FROM ventas v
+            JOIN usuarios u ON v.usuario_id = u.id
+            WHERE DATE(v.fecha) BETWEEN ? AND ?" . $filter . "
+            ORDER BY v.fecha DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Check for export request first
+$export_ventas = $_GET['export_ventas'] ?? '';
+if ($export_ventas) {
+    // Get filter parameters for export
+    $venta_inicio = $_GET['venta_inicio'] ?? date('Y-m-d');
+    $venta_fin = $_GET['venta_fin'] ?? date('Y-m-d');
+    $vendedor_sel = $_GET['vendedor'] ?? '';
+    
+    $ventasData = obtenerVentasDia($conn, $venta_inicio, $venta_fin, $vendedor_sel);
+    
+    if ($export_ventas === 'json') {
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="ventas.json"');
+        echo json_encode($ventasData, JSON_PRETTY_PRINT);
+        exit;
+    }
+    if ($export_ventas === 'excel') {
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="ventas.csv"');
+        $out = fopen('php://output','w');
+        fputcsv($out, ['Boleta ID','Fecha','Vendedor','Total','Tipo','Número Documento']);
+        foreach($ventasData as $row) {
+            fputcsv($out, [$row['boleta_id'],$row['fecha'],$row['vendedor'],$row['total'],$row['tipo_documento'],$row['numero_documento']]);
+        }
+        fclose($out);
+        exit;
+    }
+}
+
+// Now include layout and continue with normal page logic
+require_once '../../includes/layout_admin.php';
+
+// CSRF validation en POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+}
 
 // Obtener sesión de caja actual
 function obtenerSesionActual($conn, $usuario_id = null) {
@@ -14,10 +73,10 @@ function obtenerSesionActual($conn, $usuario_id = null) {
     
     $stmt = $conn->prepare($query);
     if ($usuario_id) {
-        $stmt->bind_param("i", $usuario_id);
+        $stmt->execute([$usuario_id]);
     }
     $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Manejar acciones POST
@@ -36,9 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Este usuario ya tiene una caja abierta";
             } else {
                 $stmt = $conn->prepare("INSERT INTO sesiones_caja (usuario_id, monto_inicial, observaciones) VALUES (?, ?, ?)");
-                $stmt->bind_param("ids", $usuario_id, $monto_inicial, $observaciones);
-                
-                if ($stmt->execute()) {
+                if ($stmt->execute([$usuario_id, $monto_inicial, $observaciones])) {
                     $success = "Caja abierta exitosamente";
                 } else {
                     $error = "Error al abrir caja: " . $conn->error;
@@ -57,15 +114,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            JOIN sesiones_caja sc ON DATE(v.fecha) = DATE(sc.fecha_apertura) 
                            WHERE sc.id = ? AND v.usuario_id = sc.usuario_id";
             $ventasStmt = $conn->prepare($ventasQuery);
-            $ventasStmt->bind_param("i", $sesion_id);
-            $ventasStmt->execute();
-            $totalVentas = $ventasStmt->get_result()->fetch_assoc()['total_ventas'];
+            $ventasStmt->execute([$sesion_id]);
+            $totalVentas = $ventasStmt->fetch(PDO::FETCH_ASSOC)['total_ventas'];
             
             $stmt = $conn->prepare("UPDATE sesiones_caja SET fecha_cierre = NOW(), monto_final = ?, total_ventas = ?, estado = 'cerrada', observaciones = CONCAT(COALESCE(observaciones, ''), ?, ' | Cerrada: ', ?) WHERE id = ?");
             $fechaCierre = date('Y-m-d H:i:s');
-            $stmt->bind_param("ddssi", $monto_final, $totalVentas, $observaciones, $fechaCierre, $sesion_id);
-            
-            if ($stmt->execute()) {
+            if ($stmt->execute([$monto_final, $totalVentas, $observaciones, $fechaCierre, $sesion_id])) {
                 $success = "Caja cerrada exitosamente";
             } else {
                 $error = "Error al cerrar caja: " . $conn->error;
@@ -76,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Obtener vendedores para el selector
 $vendedoresQuery = "SELECT id, nombre FROM usuarios WHERE rol IN ('vendedor', 'jefe') ORDER BY nombre";
-$vendedores = $conn->query($vendedoresQuery)->fetch_all(MYSQLI_ASSOC);
+$vendedores = $conn->query($vendedoresQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 // Obtener sesiones recientes
 $sesionesQuery = "SELECT sc.*, u.nombre as vendedor 
@@ -84,7 +138,7 @@ $sesionesQuery = "SELECT sc.*, u.nombre as vendedor
                   JOIN usuarios u ON sc.usuario_id = u.id 
                   ORDER BY sc.fecha_apertura DESC 
                   LIMIT 20";
-$sesiones = $conn->query($sesionesQuery)->fetch_all(MYSQLI_ASSOC);
+$sesiones = $conn->query($sesionesQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 // Obtener sesiones abiertas
 $sesionesAbiertasQuery = "SELECT sc.*, u.nombre as vendedor 
@@ -92,7 +146,7 @@ $sesionesAbiertasQuery = "SELECT sc.*, u.nombre as vendedor
                           JOIN usuarios u ON sc.usuario_id = u.id 
                           WHERE sc.estado = 'abierta' 
                           ORDER BY sc.fecha_apertura DESC";
-$sesionesAbiertas = $conn->query($sesionesAbiertasQuery)->fetch_all(MYSQLI_ASSOC);
+$sesionesAbiertas = $conn->query($sesionesAbiertasQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 // Estadísticas del día
 $hoy = date('Y-m-d');
@@ -103,7 +157,28 @@ $statsQuery = "SELECT
     SUM(CASE WHEN estado = 'cerrada' THEN total_ventas ELSE 0 END) as total_ventas_dia
 FROM sesiones_caja 
 WHERE DATE(fecha_apertura) = '$hoy'";
-$stats = $conn->query($statsQuery)->fetch_assoc();
+$statsStmt = $conn->prepare($statsQuery);
+$statsStmt->execute();
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+// Parámetros de filtro de ventas
+$venta_inicio = $_GET['venta_inicio'] ?? date('Y-m-d');
+$venta_fin = $_GET['venta_fin'] ?? date('Y-m-d');
+$vendedor_sel = $_GET['vendedor'] ?? '';
+
+// Obtener datos para vista
+$ventasRows = obtenerVentasDia($conn, $venta_inicio, $venta_fin, $vendedor_sel);
+
+// Cálculo de estadísticas de ventas filtradas
+$totalesVentas = array_column($ventasRows, 'total');
+$countVentas = count($totalesVentas);
+$sumaVentas = array_sum($totalesVentas);
+$promedioVentas = $countVentas > 0 ? ($sumaVentas / $countVentas) : 0;
+$maxVenta = $countVentas > 0 ? max($totalesVentas) : 0;
+$minVenta = $countVentas > 0 ? min($totalesVentas) : 0;
+
+// Obtener lista de vendedores
+$vendedoresList = $conn->query("SELECT id,nombre FROM usuarios WHERE rol IN ('vendedor','jefe') ORDER BY nombre")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <style>
@@ -501,6 +576,104 @@ $stats = $conn->query($statsQuery)->fetch_assoc();
     border-color: rgba(255, 107, 107, 0.3);
     color: #ff6b6b;
 }
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.filter-input, .filter-select {
+    width: 100%;
+    background: rgba(30, 30, 40, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.filter-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: #48dbfb;
+    box-shadow: 0 0 0 2px rgba(72, 219, 251, 0.3);
+}
+
+.btn-generate {
+    background: linear-gradient(135deg, #00ff7f, #7bed9f);
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-export {
+    background: linear-gradient(135deg, #feca57, #ffd93d);
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-generate:hover, .btn-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.table-container {
+    background: rgba(30, 30, 40, 0.9);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.report-table th, .report-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.report-table th {
+    background: rgba(45, 27, 105, 0.3);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.report-table td {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.report-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
 </style>
 
 <div class="caja-container">
@@ -561,6 +734,7 @@ $stats = $conn->query($statsQuery)->fetch_assoc();
                 Abrir Caja
             </h3>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <input type="hidden" name="action" value="abrir_caja">
                 
                 <div class="form-group">
@@ -599,6 +773,7 @@ $stats = $conn->query($statsQuery)->fetch_assoc();
             </h3>
             <?php if (!empty($sesionesAbiertas)): ?>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                     <input type="hidden" name="action" value="cerrar_caja">
                     
                     <div class="form-group">
@@ -713,8 +888,91 @@ $stats = $conn->query($statsQuery)->fetch_assoc();
             <?php endforeach; ?>
         </div>
     </div>
+
+    <!-- Resumen Analítico de Ventas -->
+    <div class="report-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon sales">💰</div>
+                <div class="stat-value">$<?= number_format($sumaVentas,2,',','.') ?></div>
+                <div class="stat-label">Total Ventas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon transactions">📊</div>
+                <div class="stat-value"><?= $countVentas ?></div>
+                <div class="stat-label">Transacciones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon average">📈</div>
+                <div class="stat-value">$<?= number_format($promedioVentas,2,',','.') ?></div>
+                <div class="stat-label">Venta Promedio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon sales">⚖️</div>
+                <div class="stat-value">$<?= number_format($maxVenta,2,',','.') ?></div>
+                <div class="stat-label">Venta Máxima</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon sales">🔽</div>
+                <div class="stat-value">$<?= number_format($minVenta,2,',','.') ?></div>
+                <div class="stat-label">Venta Mínima</div>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="ventasChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Filtros de Ventas Diarias -->
+    <div class="sales-section">
+        <h3 class="section-title"><i class="bi bi-cash-stack"></i> Ventas Diarias</h3>
+        <form method="GET" class="filters-grid">
+            <div class="filter-group">
+                <label class="filter-label">Fecha Inicio</label>
+                <input type="date" name="venta_inicio" class="filter-input" value="<?= $venta_inicio ?>">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Fecha Fin</label>
+                <input type="date" name="venta_fin" class="filter-input" value="<?= $venta_fin ?>">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Vendedor</label>
+                <select name="vendedor" class="filter-select">
+                    <option value="" <?= $vendedor_sel==''?'selected':'' ?>>Todos</option>
+                    <?php foreach($vendedoresList as $v): ?>
+                    <option value="<?= $v['id'] ?>" <?= $vendedor_sel==$v['id']?'selected':'' ?>><?= htmlspecialchars($v['nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button type="submit" class="btn-generate"><i class="bi bi-filter"></i> Filtrar</button>
+            </div>
+            <div class="filter-group">
+                <button type="submit" name="export_ventas" value="json" class="btn-export"><i class="bi bi-file-earmark-code"></i> JSON</button>
+                <button type="submit" name="export_ventas" value="excel" class="btn-export"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            </div>
+        </form>
+        <div class="table-container">
+            <table class="report-table">
+                <thead><tr><th>Boleta</th><th>Fecha</th><th>Vendedor</th><th>Total</th><th>Tipo</th><th>n° Documento</th></tr></thead>
+                <tbody>
+                    <?php foreach($ventasRows as $r): ?>
+                    <tr>
+                        <td><?= $r['boleta_id'] ?></td>
+                        <td><?= $r['fecha'] ?></td>
+                        <td><?= htmlspecialchars($r['vendedor']) ?></td>
+                        <td>$<?= number_format($r['total'],0,',','.') ?></td>
+                        <td><?= htmlspecialchars($r['tipo_documento']) ?></td>
+                        <td><?= htmlspecialchars($r['numero_documento']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function showSessions(tipo) {
     const sessions = document.querySelectorAll('.session-card');
@@ -744,9 +1002,33 @@ function cerrarSesion(sesionId, vendedor) {
 }
 
 function verDetalles(sesionId) {
-    // Implementar modal con detalles completos de la sesión
-    alert(`Ver detalles de la sesión ${sesionId} - Función en desarrollo`);
+    // Abrir nueva pestaña con ventas de la sesión
+    window.open('ventas_sesion.php?sesion_id=' + sesionId, '_blank');
 }
+
+// Datos para gráfico de ventas
+const ventasData = <?= json_encode($ventasRows) ?>;
+const labels = ventasData.map(v => v.fecha);
+const datos = ventasData.map(v => parseFloat(v.total));
+new Chart(document.getElementById('ventasChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Total Ventas',
+            data: datos,
+            backgroundColor: 'rgba(72, 219, 251, 0.5)',
+            borderColor: '#48dbfb',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
 
 // Auto-hide alerts
 document.addEventListener('DOMContentLoaded', function() {

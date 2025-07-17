@@ -88,7 +88,11 @@ function middlewareAdmin($redirigirA = null) {
  * Middleware específico para solo vendedores
  */
 function middlewareVendedor($redirigirA = null) {
-    return middleware('vendedor', $redirigirA);
+    // Verificar primero que sea un vendedor
+    $resultado = middleware('vendedor', $redirigirA);
+    
+    
+    return $resultado;
 }
 
 /**

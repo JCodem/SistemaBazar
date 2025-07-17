@@ -7,11 +7,10 @@ $correo = $_POST['correo'] ?? '';
 $contraseña = $_POST['contrasena'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
 try {
-
-// Usar PDO con parámetros nombrados
-$stmt = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
-$stmt->execute([':correo' => $correo]);
-$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Usar PDO con parámetros nombrados
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
+    $stmt->execute(['correo' => $correo]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Agregar depuración para ver qué está fallando
     if (!$usuario) {
