@@ -1,4 +1,11 @@
 <?php
+// Función para escribir logs
+function escribir_log($mensaje) {
+    $fecha = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'CLI';
+    $linea = "[$fecha] [$ip] $mensaje\n";
+    file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
+}
 session_start();
 require_once '../includes/funciones.php'; // CSRF helpers
 ?>
@@ -149,7 +156,7 @@ require_once '../includes/funciones.php'; // CSRF helpers
             padding: 0.75rem 1rem;
             font-size: 0.9rem;
             transition: all 0.3s ease;
-            color: var(--text-primary);
+            color: #fff !important;
         }
 
         .form-control::placeholder {
@@ -277,10 +284,12 @@ require_once '../includes/funciones.php'; // CSRF helpers
         <h3 class="text-center">Iniciar Sesión</h3>
 
     <?php if (isset($_SESSION['error'])): ?>
+        <?php escribir_log("LOGIN UI ERROR: " . $_SESSION['error']); ?>
         <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
     <?php endif; ?>
     
     <?php if (isset($_SESSION['mensaje'])): ?>
+        <?php escribir_log("LOGIN UI MENSAJE: " . $_SESSION['mensaje']); ?>
         <div class="alert alert-info"><?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?></div>
     <?php endif; ?>
     
@@ -299,8 +308,8 @@ require_once '../includes/funciones.php'; // CSRF helpers
         </div>
 
         <div class="mb-3">
-            <label for="contraseña" class="form-label">Contraseña</label>
-            <input type="password" name="contraseña" class="form-control" required placeholder="Tu contraseña">
+            <label for="contrasena" class="form-label">Contraseña</label>
+            <input type="password" name="contrasena" class="form-control" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Ingresar</button>

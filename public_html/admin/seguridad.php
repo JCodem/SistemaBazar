@@ -5,7 +5,7 @@ require_once '../../includes/funciones.php';
 
 // Manejar POST para actualizar configuración
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf_token();
+    verify_csrf_token($_POST['csrf_token'] ?? '');
 
     // Actualizar IVA
     if (isset($_POST['iva'])) {

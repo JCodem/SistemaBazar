@@ -840,6 +840,7 @@ $datosGraficas = obtenerDatosGraficas($conn);
             <div class="stat-change neutral">Con caja abierta + jefes</div>
         </div>
         
+
         <!-- Widget 3: Gestión de Productos Unificado -->
         <div class="unified-product-widget animate-up" style="animation-delay: 0.3s">
             <div class="widget-header">

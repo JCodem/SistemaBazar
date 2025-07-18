@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #232946 0%, #6e7ff3 100%), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1500&q=80') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(34, 43, 58, 0.7);
+            z-index: 1;
+        }
+        .container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: #fff;
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            background: rgba(34, 43, 58, 0.85);
+            box-shadow: 0 8px 32px rgba(34,43,58,0.25);
+            animation: fadeIn 1.2s cubic-bezier(.4,0,.2,1);
+        }
+        .error-code {
+            font-size: 7rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            background: linear-gradient(90deg, #6e7ff3, #f7971e, #232946);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            margin-bottom: 1rem;
+            animation: bounce 1.5s infinite alternate;
+        }
+        .error-message {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #f7971e;
+            letter-spacing: 1px;
+        }
+        .desc {
+            font-size: 1.1rem;
+            color: #d1d5db;
+            margin-bottom: 2.5rem;
+        }
+        .btn-home {
+            display: inline-block;
+            padding: 0.9rem 2.2rem;
+            background: linear-gradient(90deg, #6e7ff3, #f7971e);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.15);
+            text-decoration: none;
+            transition: background 0.3s, transform 0.2s;
+            cursor: pointer;
+            animation: fadeInUp 1.2s 0.5s backwards;
+        }
+        .btn-home:hover {
+            background: linear-gradient(90deg, #f7971e, #6e7ff3);
+            transform: translateY(-2px) scale(1.04);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-18px); }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 2rem 0.5rem; }
+            .error-code { font-size: 4rem; }
+            .error-message { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="error-code">404</div>
+        <div class="error-message">¡Ups! Página no encontrada</div>
+        <div class="desc">La página que buscas no existe, fue movida o nunca estuvo aquí.<br>Por favor, verifica la URL o regresa al inicio.</div>
+        <a href="/SistemaBazar/public_html/index.php" class="btn-home">Volver al Inicio</a>
+    </div>
+</body>
+</html>

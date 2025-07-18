@@ -71,6 +71,7 @@ class POSController {
             if (!$userId && isset($_SESSION['user_id'])) {
                 $userId = $_SESSION['user_id'];
             }
+
             
             // Manejar datos del cliente si es factura
             $clienteId = null;
@@ -114,8 +115,6 @@ class POSController {
                 }
             }
             
-            // For now, we'll handle session management later - using NULL for sesion_caja_id
-            // Generate a simple document number (this should be more sophisticated in production)
             $documentNumber = strtoupper($documentType) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
             $stmt = $this->db->prepare("INSERT INTO ventas (usuario_id, cliente_id, total, metodo_pago, tipo_documento, numero_documento, fecha, sesion_caja_id) 
