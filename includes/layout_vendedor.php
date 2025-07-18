@@ -20,342 +20,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- POS CSS -->
-  <link rel="stylesheet" href="../modules/pos/assets/css/pos.css">
-  <style>
-    :root {
-      --sidebar-width: 280px;
-      --sidebar-bg: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 80%, #0f0f0f 100%);
-      --sidebar-hover: rgba(255, 255, 255, 0.1);
-      --sidebar-active: rgba(255, 255, 255, 0.2);
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --shadow-sidebar: 0 0 30px rgba(0, 0, 0, 0.3);
-      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    }
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      overflow-x: hidden;
-      background-color: #f8fafc;
-    }
-
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--sidebar-bg);
-      color: var(--text-primary);
-      flex-shrink: 0;
-      padding: 0;
-      box-shadow: var(--shadow-sidebar);
-      position: fixed;
-      left: 0;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      z-index: 1000;
-      transition: var(--transition);
-      transform: translateX(0);
-    }
-
-    .sidebar.collapsed {
-      transform: translateX(-100%);
-    }
-
-    .sidebar::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      pointer-events: none;
-      animation: starGlow 8s ease-in-out infinite;
-    }
-
-    @keyframes starGlow {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.6; }
-    }
-
-    .sidebar-header {
-      padding: 2rem 1.5rem 1.5rem;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      position: relative;
-    }
-
-    .user-avatar {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      border-radius: 50%;
-      margin: 0 auto 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      font-weight: 600;
-      color: white;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      position: relative;
-      overflow: hidden;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .user-avatar::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: rotate(45deg);
-      animation: shimmer 3s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-    }
-
-    .user-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0;
-      color: var(--text-primary);
-    }
-
-    .user-role {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 1rem 0;
-      overflow-y: auto;
-    }
-
-    .nav-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .nav-section-title {
-      padding: 0 1.5rem 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-secondary);
-    }
-
-    .nav-item {
-      margin: 0.25rem 0.75rem;
-      border-radius: 12px;
-      overflow: hidden;
-      transition: var(--transition);
-    }
-
-    .nav-link {
-      color: var(--text-primary);
-      padding: 0.875rem 1rem;
-      display: flex;
-      align-items: center;
-      text-decoration: none;
-      transition: var(--transition);
-      position: relative;
-      border-radius: 12px;
-      font-weight: 500;
-    }
-
-    .nav-link:hover {
-      background: var(--sidebar-hover);
-      color: var(--text-primary);
-      transform: translateX(4px);
-    }
-
-    .nav-link.active {
-      background: var(--sidebar-active);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .nav-link.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, #ff6b6b, #feca57);
-      border-radius: 0 4px 4px 0;
-    }
-
-    .nav-icon {
-      font-size: 1.2rem;
-      margin-right: 0.75rem;
-      width: 20px;
-      text-align: center;
-      transition: var(--transition);
-    }
-
-    .nav-text {
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-
-    .nav-link:hover .nav-icon {
-      transform: scale(1.1);
-    }
-
-    .logout-section {
-      flex-shrink: 0;
-      padding: 1rem 0.75rem 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: auto;
-    }
-
-    .logout-link {
-      color: #ff6b6b !important;
-      background: rgba(255, 107, 107, 0.1);
-      border: 1px solid rgba(255, 107, 107, 0.3);
-    }
-
-    .logout-link:hover {
-      background: rgba(255, 107, 107, 0.2) !important;
-      color: #ff5252 !important;
-      transform: translateX(4px);
-    }
-
-    .main-content {
-      flex-grow: 1;
-      background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f0f 100%);
-      min-height: 100vh;
-      position: relative;
-      margin-left: var(--sidebar-width);
-      transition: var(--transition);
-      width: calc(100% - var(--sidebar-width));
-    }
-
-    .main-content.expanded {
-      margin-left: 0;
-      width: 100%;
-    }
-
-    /* Botón toggle para la sidebar */
-    .sidebar-toggle {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      z-index: 1001;
-      background: rgba(15, 15, 25, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      color: white;
-      padding: 10px;
-      cursor: pointer;
-      transition: var(--transition);
-      backdrop-filter: blur(10px);
-      display: block;
-    }
-
-    .sidebar-toggle:hover {
-      background: rgba(25, 25, 35, 0.9);
-      transform: scale(1.05);
-    }
-
-    .content-wrapper {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-      min-height: calc(100vh - 4rem);
-      box-sizing: border-box;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      transition: var(--transition);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Prevenir solapamientos */
-    body {
-      overflow-x: hidden;
-    }
-
-    .sidebar, .main-content {
-      box-sizing: border-box;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-      }
-
-      .sidebar.show {
-        transform: translateX(0);
-      }
-
-      .main-content {
-        margin-left: 0;
-        width: 100%;
-      }
-
-      .content-wrapper {
-        padding: 4rem 1rem 1rem;
-      }
-    }
-
-    @media (min-width: 769px) {
-      .main-content {
-        margin-left: var(--sidebar-width);
-        width: calc(100% - var(--sidebar-width));
-      }
-      
-      .sidebar-toggle {
-        left: calc(var(--sidebar-width) + 20px);
-        transition: left var(--transition);
-      }
-      
-      .sidebar.collapsed + .sidebar-toggle {
-        left: 20px;
-      }
-    }
-
-    /* Scroll personalizado para la sidebar */
-    .sidebar::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .sidebar::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .sidebar::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-    }
-
-    .sidebar::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.5);
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/pos.css">
+  <!-- Layout Vendedor CSS - DEBE IR AL FINAL PARA SOBRESCRIBIR BOOTSTRAP -->
+  <link rel="stylesheet" href="/assets/css/layout_vendedor.css">
 </head>
 <body>
 
@@ -444,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Desktop: Collapse/expand sidebar
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
+            sidebarToggle.classList.toggle('collapsed');
             
             // Cambiar icono del botón
             const icon = sidebarToggle.querySelector('i');
@@ -476,11 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebar.classList.remove('show');
             sidebar.classList.remove('collapsed');
             mainContent.classList.remove('expanded');
+            sidebarToggle.classList.remove('collapsed');
             sidebarVisible = true;
         } else if (newWidth <= 768 && sidebarVisible) {
             // Cambio de desktop a mobile
             sidebar.classList.remove('collapsed', 'show');
             mainContent.classList.remove('expanded');
+            sidebarToggle.classList.add('collapsed');
             sidebarVisible = false;
         }
     });
@@ -488,9 +158,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar/ocultar botón toggle según el tamaño de pantalla
     function updateToggleVisibility() {
         if (window.innerWidth <= 768) {
-            sidebarToggle.classList.add('visible');
+            sidebarToggle.classList.add('visible', 'collapsed');
         } else {
-            sidebarToggle.classList.add('visible'); // Siempre visible para permitir colapsar
+            sidebarToggle.classList.add('visible');
+            sidebarToggle.classList.remove('collapsed');
         }
     }
 

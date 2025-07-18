@@ -144,7 +144,7 @@ function performSearch(query) {
   formData.append('action', 'search');
   formData.append('query', query);
   
-  fetch('./ajax_handler.php', {
+  fetch('../ajax_handler.php', {
     method: 'POST',
     body: formData
   })
@@ -480,15 +480,18 @@ function handleDocumentTypeChange(e) {
     // Make required fields mandatory
     document.getElementById('customer-rut').setAttribute('required', 'required');
     document.getElementById('customer-razon-social').setAttribute('required', 'required');
+    document.getElementById('customer-direccion').setAttribute('required', 'required');
   } else {
     customerData.style.display = 'none';
     // Remove required attributes
     document.getElementById('customer-rut').removeAttribute('required');
     document.getElementById('customer-razon-social').removeAttribute('required');
+    document.getElementById('customer-direccion').removeAttribute('required');
     
     // Clear values
     document.getElementById('customer-rut').value = '';
     document.getElementById('customer-razon-social').value = '';
+    document.getElementById('customer-direccion').value = '';
     document.getElementById('customer-rut-persona').value = '';
     document.getElementById('customer-nombre-persona').value = '';
   }
@@ -560,9 +563,10 @@ function completeSale() {
   if (documentType === 'factura') {
     const customerRut = document.getElementById('customer-rut').value.trim();
     const customerRazonSocial = document.getElementById('customer-razon-social').value.trim();
+    const customerDireccion = document.getElementById('customer-direccion').value.trim();
     
-    if (!customerRut || !customerRazonSocial) {
-      alert('Para factura, el RUT y Razón Social son obligatorios');
+    if (!customerRut || !customerRazonSocial || !customerDireccion) {
+      alert('Para factura, el RUT, Razón Social y Dirección son obligatorios');
       return;
     }
   }
@@ -591,12 +595,14 @@ function completeSale() {
   if (documentType === 'factura') {
     saleData.customer_rut = document.getElementById('customer-rut').value.trim();
     saleData.customer_razon_social = document.getElementById('customer-razon-social').value.trim();
+    saleData.customer_direccion = document.getElementById('customer-direccion').value.trim();
     saleData.customer_rut_persona = document.getElementById('customer-rut-persona').value.trim();
     saleData.customer_nombre_persona = document.getElementById('customer-nombre-persona').value.trim();
   } else {
     // For boleta, only optional RUT (moved from customer_rut to general rut field)
     saleData.customer_rut = '';
     saleData.customer_razon_social = '';
+    saleData.customer_direccion = '';
     saleData.customer_rut_persona = '';
     saleData.customer_nombre_persona = '';
   }
@@ -607,7 +613,7 @@ function completeSale() {
   }
   
   // Send to server
-  fetch('./ajax_handler.php', {
+  fetch('../ajax_handler.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(saleData)
@@ -618,6 +624,12 @@ function completeSale() {
     
     if (data.success) {
       alert('Venta completada exitosamente');
+      
+      // Descargar PDF automáticamente
+      if (data.transactionId) {
+        downloadSalePDF(data.transactionId, data.documentType);
+      }
+      
       newSale();
     } else {
       alert('Error al completar la venta: ' + (data.message || 'Error desconocido'));
@@ -659,6 +671,37 @@ function newSale() {
   document.getElementById('product-search').focus();
   
   debugPOS('Nueva venta iniciada');
+}
+
+// Función para descargar el PDF de la venta
+function downloadSalePDF(ventaId, documentType) {
+  try {
+    debugPOS('Descargando PDF para venta:', ventaId);
+    
+    // Crear un enlace temporal para la descarga
+    const link = document.createElement('a');
+    link.href = `../pdf_controller.php?venta_id=${ventaId}`;
+    link.download = `${documentType}_${ventaId}.pdf`;
+    link.target = '_blank';
+    
+    // Agregar al DOM temporalmente
+    document.body.appendChild(link);
+    
+    // Hacer clic en el enlace para iniciar la descarga
+    link.click();
+    
+    // Remover el enlace del DOM después de un pequeño delay
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
+    
+    debugPOS('PDF descargado exitosamente');
+    
+  } catch (error) {
+    console.error('Error al descargar PDF:', error);
+    debugPOS('Error en downloadSalePDF:', error);
+    alert('No se pudo descargar el PDF. Error: ' + error.message);
+  }
 }
 
 // Make functions globally available for onclick handlers

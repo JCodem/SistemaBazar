@@ -140,12 +140,16 @@ $totalPages = (int)ceil($totalUsers / $limit);
 // Obtener usuarios con paginación
 $query = "SELECT id, nombre, correo, rut, rol, created_at, updated_at FROM usuarios $where_clause ORDER BY created_at DESC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
-$paramIndex = 1;
-foreach ($params as $param) {
-    $stmt->bindValue($paramIndex++, $param);
+
+// Bind regular parameters first
+for ($i = 0; $i < count($params); $i++) {
+    $stmt->bindValue($i + 1, $params[$i]);
 }
-$stmt->bindValue($paramIndex++, (int)$limit, PDO::PARAM_INT);
-$stmt->bindValue($paramIndex++, (int)$offset, PDO::PARAM_INT);
+
+// Bind LIMIT and OFFSET as integers
+$stmt->bindValue(count($params) + 1, $limit, PDO::PARAM_INT);
+$stmt->bindValue(count($params) + 2, $offset, PDO::PARAM_INT);
+
 $stmt->execute();
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

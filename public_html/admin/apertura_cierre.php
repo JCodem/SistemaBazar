@@ -3,53 +3,6 @@
 require_once '../../includes/db.php';
 require_once '../../includes/funciones.php'; // CSRF helpers
 
-// Function to get filtered sales data (defined at top level)
-function obtenerVentasDia($conn, $fecha_ini, $fecha_fin, $vendedor_id = '') {
-    $filter = '';
-    $params = [$fecha_ini, $fecha_fin];
-    if ($vendedor_id) { 
-        $filter = ' AND v.usuario_id = ?'; 
-        $params[] = $vendedor_id; 
-    }
-    $sql = "SELECT v.id as boleta_id, DATE(v.fecha) as fecha, v.total, v.tipo_documento, v.numero_documento, u.nombre as vendedor
-            FROM ventas v
-            JOIN usuarios u ON v.usuario_id = u.id
-            WHERE DATE(v.fecha) BETWEEN ? AND ?" . $filter . "
-            ORDER BY v.fecha DESC";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// Check for export request first
-$export_ventas = $_GET['export_ventas'] ?? '';
-if ($export_ventas) {
-    // Get filter parameters for export
-    $venta_inicio = $_GET['venta_inicio'] ?? date('Y-m-d');
-    $venta_fin = $_GET['venta_fin'] ?? date('Y-m-d');
-    $vendedor_sel = $_GET['vendedor'] ?? '';
-    
-    $ventasData = obtenerVentasDia($conn, $venta_inicio, $venta_fin, $vendedor_sel);
-    
-    if ($export_ventas === 'json') {
-        header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="ventas.json"');
-        echo json_encode($ventasData, JSON_PRETTY_PRINT);
-        exit;
-    }
-    if ($export_ventas === 'excel') {
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="ventas.csv"');
-        $out = fopen('php://output','w');
-        fputcsv($out, ['Boleta ID','Fecha','Vendedor','Total','Tipo','Número Documento']);
-        foreach($ventasData as $row) {
-            fputcsv($out, [$row['boleta_id'],$row['fecha'],$row['vendedor'],$row['total'],$row['tipo_documento'],$row['numero_documento']]);
-        }
-        fclose($out);
-        exit;
-    }
-}
-
 // Now include layout and continue with normal page logic
 require_once '../../includes/layout_admin.php';
 
@@ -161,24 +114,31 @@ $statsStmt = $conn->prepare($statsQuery);
 $statsStmt->execute();
 $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
-// Parámetros de filtro de ventas
-$venta_inicio = $_GET['venta_inicio'] ?? date('Y-m-d');
-$venta_fin = $_GET['venta_fin'] ?? date('Y-m-d');
-$vendedor_sel = $_GET['vendedor'] ?? '';
+// Widget: Total vendedores activos vs inactivos
+$vendedoresStatsQuery = "SELECT 
+    COUNT(*) as total_vendedores,
+    SUM(CASE WHEN sc.id IS NOT NULL THEN 1 ELSE 0 END) as vendedores_activos,
+    SUM(CASE WHEN sc.id IS NULL THEN 1 ELSE 0 END) as vendedores_inactivos
+FROM usuarios u 
+LEFT JOIN sesiones_caja sc ON u.id = sc.usuario_id AND sc.estado = 'abierta'
+WHERE u.rol IN ('vendedor', 'jefe')";
+$vendedoresStats = $conn->query($vendedoresStatsQuery)->fetch(PDO::FETCH_ASSOC);
 
-// Obtener datos para vista
-$ventasRows = obtenerVentasDia($conn, $venta_inicio, $venta_fin, $vendedor_sel);
+// Widget: Ventas totales cajas activas
+$ventasCajasActivasQuery = "SELECT 
+    COALESCE(SUM(v.total), 0) as ventas_cajas_activas,
+    COUNT(DISTINCT v.usuario_id) as vendedores_con_ventas
+FROM ventas v 
+JOIN sesiones_caja sc ON v.usuario_id = sc.usuario_id 
+WHERE sc.estado = 'abierta' AND DATE(v.fecha) = CURDATE()";
+$ventasCajasActivas = $conn->query($ventasCajasActivasQuery)->fetch(PDO::FETCH_ASSOC);
 
-// Cálculo de estadísticas de ventas filtradas
-$totalesVentas = array_column($ventasRows, 'total');
-$countVentas = count($totalesVentas);
-$sumaVentas = array_sum($totalesVentas);
-$promedioVentas = $countVentas > 0 ? ($sumaVentas / $countVentas) : 0;
-$maxVenta = $countVentas > 0 ? max($totalesVentas) : 0;
-$minVenta = $countVentas > 0 ? min($totalesVentas) : 0;
-
-// Obtener lista de vendedores
-$vendedoresList = $conn->query("SELECT id,nombre FROM usuarios WHERE rol IN ('vendedor','jefe') ORDER BY nombre")->fetchAll(PDO::FETCH_ASSOC);
+// Widget: Sesiones iniciadas vs cerradas en el día
+$sesionesDelDiaQuery = "SELECT 
+    SUM(CASE WHEN DATE(fecha_apertura) = CURDATE() THEN 1 ELSE 0 END) as sesiones_iniciadas_hoy,
+    SUM(CASE WHEN DATE(fecha_cierre) = CURDATE() THEN 1 ELSE 0 END) as sesiones_cerradas_hoy
+FROM sesiones_caja";
+$sesionesDelDia = $conn->query($sesionesDelDiaQuery)->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <style>
@@ -241,7 +201,8 @@ $vendedoresList = $conn->query("SELECT id,nombre FROM usuarios WHERE rol IN ('ve
 
 .stat-icon.sessions { background: linear-gradient(135deg, #48dbfb, #74edf7); }
 .stat-icon.open { background: linear-gradient(135deg, #00ff7f, #7bed9f); }
-.stat-icon.closed { background: linear-gradient(135deg, #ff6b6b, #ff8e8e); }
+.stat-icon.vendors { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+.stat-icon.daily { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 .stat-icon.sales { background: linear-gradient(135deg, #feca57, #ffd93d); }
 
 .stat-value {
@@ -689,26 +650,26 @@ $vendedoresList = $conn->query("SELECT id,nombre FROM usuarios WHERE rol IN ('ve
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon sessions">📊</div>
-            <div class="stat-value"><?= $stats['total_sesiones'] ?></div>
-            <div class="stat-label">Sesiones del Día</div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon open">✅</div>
             <div class="stat-value"><?= $stats['sesiones_abiertas'] ?></div>
             <div class="stat-label">Cajas Abiertas</div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-icon closed">🔒</div>
-            <div class="stat-value"><?= $stats['sesiones_cerradas'] ?></div>
-            <div class="stat-label">Cajas Cerradas</div>
+            <div class="stat-icon vendors">👥</div>
+            <div class="stat-value"><?= $vendedoresStats['vendedores_activos'] ?> / <?= $vendedoresStats['total_vendedores'] ?></div>
+            <div class="stat-label">Vendedores Activos</div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-icon sales">💰</div>
-            <div class="stat-value">$<?= number_format($stats['total_ventas_dia'], 0, ',', '.') ?></div>
-            <div class="stat-label">Total Ventas Día</div>
+            <div class="stat-icon sales">�</div>
+            <div class="stat-value">$<?= number_format($ventasCajasActivas['ventas_cajas_activas'], 0, ',', '.') ?></div>
+            <div class="stat-label">Ventas Cajas Activas</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon daily">�</div>
+            <div class="stat-value"><?= $sesionesDelDia['sesiones_iniciadas_hoy'] ?> / <?= $sesionesDelDia['sesiones_cerradas_hoy'] ?></div>
+            <div class="stat-label">Iniciadas / Cerradas Hoy</div>
         </div>
     </div>
 
@@ -813,222 +774,119 @@ $vendedoresList = $conn->query("SELECT id,nombre FROM usuarios WHERE rol IN ('ve
         </div>
     </div>
 
-    <!-- Historial de Sesiones -->
+    <!-- Sesiones Activas -->
     <div class="sessions-section">
-        <h3 class="section-title">
-            <i class="bi bi-clock-history"></i>
-            Historial de Sesiones
-        </h3>
-        
-        <div class="sessions-tabs">
-            <button class="tab-btn active" onclick="showSessions('todas')">Todas</button>
-            <button class="tab-btn" onclick="showSessions('abiertas')">Abiertas</button>
-            <button class="tab-btn" onclick="showSessions('cerradas')">Cerradas</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 class="section-title">
+                <i class="bi bi-lightning-charge"></i>
+                Sesiones Activas
+            </h3>
+            <a href="historial_sesiones.php" class="btn-filter" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <i class="bi bi-clock-history"></i> Ver Historial Completo
+            </a>
         </div>
         
-        <div class="sessions-grid" id="sessionsContainer">
-            <?php foreach ($sesiones as $sesion): ?>
-                <div class="session-card session-<?= $sesion['estado'] ?>">
-                    <div class="session-header">
-                        <div class="session-vendor"><?= htmlspecialchars($sesion['vendedor']) ?></div>
-                        <div class="session-status status-<?= $sesion['estado'] ?>">
-                            <?= ucfirst($sesion['estado']) ?>
-                        </div>
-                    </div>
-                    
-                    <div class="session-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Apertura</span>
-                            <span class="detail-value"><?= date('d/m/Y H:i', strtotime($sesion['fecha_apertura'])) ?></span>
+        <?php if (!empty($sesionesAbiertas)): ?>
+            <div class="sessions-grid">
+                <?php foreach ($sesionesAbiertas as $sesion): ?>
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-vendor"><?= htmlspecialchars($sesion['vendedor']) ?></div>
+                            <div class="session-status status-abierta">
+                                Activa
+                            </div>
                         </div>
                         
-                        <?php if ($sesion['fecha_cierre']): ?>
-                        <div class="detail-item">
-                            <span class="detail-label">Cierre</span>
-                            <span class="detail-value"><?= date('d/m/Y H:i', strtotime($sesion['fecha_cierre'])) ?></span>
+                        <div class="session-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Fecha Apertura</div>
+                                <div class="detail-value"><?= date('d/m/Y H:i', strtotime($sesion['fecha_apertura'])) ?></div>
+                            </div>
+                            
+                            <div class="detail-item">
+                                <div class="detail-label">Monto Inicial</div>
+                                <div class="detail-value">$<?= number_format($sesion['monto_inicial'], 0, ',', '.') ?></div>
+                            </div>
+                            
+                            <div class="detail-item">
+                                <div class="detail-label">Duración</div>
+                                <div class="detail-value">
+                                    <?php
+                                    $inicio = new DateTime($sesion['fecha_apertura']);
+                                    $ahora = new DateTime();
+                                    $duracion = $inicio->diff($ahora);
+                                    echo $duracion->format('%h:%I horas');
+                                    ?>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-item">
+                                <div class="detail-label">Ventas del Día</div>
+                                <div class="detail-value">
+                                    <?php
+                                    // Calcular ventas del día para esta sesión
+                                    $ventasHoyQuery = "SELECT COALESCE(SUM(total), 0) as ventas_hoy 
+                                                      FROM ventas 
+                                                      WHERE usuario_id = ? AND DATE(fecha) = CURDATE()";
+                                    $ventasHoyStmt = $conn->prepare($ventasHoyQuery);
+                                    $ventasHoyStmt->execute([$sesion['usuario_id']]);
+                                    $ventasHoy = $ventasHoyStmt->fetch(PDO::FETCH_ASSOC)['ventas_hoy'];
+                                    ?>
+                                    $<?= number_format($ventasHoy, 0, ',', '.') ?>
+                                </div>
+                            </div>
                         </div>
-                        <?php endif; ?>
                         
-                        <div class="detail-item">
-                            <span class="detail-label">Monto Inicial</span>
-                            <span class="detail-value">$<?= number_format($sesion['monto_inicial'], 0, ',', '.') ?></span>
-                        </div>
-                        
-                        <?php if ($sesion['estado'] === 'cerrada'): ?>
-                        <div class="detail-item">
-                            <span class="detail-label">Monto Final</span>
-                            <span class="detail-value">$<?= number_format($sesion['monto_final'], 0, ',', '.') ?></span>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <span class="detail-label">Total Ventas</span>
-                            <span class="detail-value">$<?= number_format($sesion['total_ventas'], 0, ',', '.') ?></span>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <span class="detail-label">Diferencia</span>
-                            <span class="detail-value" style="color: <?= ($sesion['monto_final'] - $sesion['monto_inicial'] - $sesion['total_ventas']) >= 0 ? '#00ff7f' : '#ff6b6b' ?>">
-                                $<?= number_format($sesion['monto_final'] - $sesion['monto_inicial'] - $sesion['total_ventas'], 0, ',', '.') ?>
-                            </span>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="session-actions">
-                        <?php if ($sesion['estado'] === 'abierta'): ?>
+                        <div class="session-actions">
                             <button class="btn-sm btn-close" onclick="cerrarSesion(<?= $sesion['id'] ?>, '<?= htmlspecialchars($sesion['vendedor']) ?>')">
                                 <i class="bi bi-lock"></i> Cerrar
                             </button>
+                        </div>
+                        
+                        <?php if ($sesion['observaciones']): ?>
+                            <div class="detail-item" style="margin-top: 1rem;">
+                                <div class="detail-label">Observaciones</div>
+                                <div class="detail-value" style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.8);">
+                                    <?= htmlspecialchars($sesion['observaciones']) ?>
+                                </div>
+                            </div>
                         <?php endif; ?>
-                        <button class="btn-sm btn-view" onclick="verDetalles(<?= $sesion['id'] ?>)">
-                            <i class="bi bi-eye"></i> Ver
-                        </button>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <!-- Resumen Analítico de Ventas -->
-    <div class="report-section">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon sales">💰</div>
-                <div class="stat-value">$<?= number_format($sumaVentas,2,',','.') ?></div>
-                <div class="stat-label">Total Ventas</div>
+                <?php endforeach; ?>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon transactions">📊</div>
-                <div class="stat-value"><?= $countVentas ?></div>
-                <div class="stat-label">Transacciones</div>
+        <?php else: ?>
+            <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.7);">
+                <i class="bi bi-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                <h3>No hay sesiones activas</h3>
+                <p>Todas las cajas están cerradas en este momento.</p>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon average">📈</div>
-                <div class="stat-value">$<?= number_format($promedioVentas,2,',','.') ?></div>
-                <div class="stat-label">Venta Promedio</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon sales">⚖️</div>
-                <div class="stat-value">$<?= number_format($maxVenta,2,',','.') ?></div>
-                <div class="stat-label">Venta Máxima</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon sales">🔽</div>
-                <div class="stat-value">$<?= number_format($minVenta,2,',','.') ?></div>
-                <div class="stat-label">Venta Mínima</div>
-            </div>
-        </div>
-        <div class="chart-container">
-            <canvas id="ventasChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Filtros de Ventas Diarias -->
-    <div class="sales-section">
-        <h3 class="section-title"><i class="bi bi-cash-stack"></i> Ventas Diarias</h3>
-        <form method="GET" class="filters-grid">
-            <div class="filter-group">
-                <label class="filter-label">Fecha Inicio</label>
-                <input type="date" name="venta_inicio" class="filter-input" value="<?= $venta_inicio ?>">
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Fecha Fin</label>
-                <input type="date" name="venta_fin" class="filter-input" value="<?= $venta_fin ?>">
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Vendedor</label>
-                <select name="vendedor" class="filter-select">
-                    <option value="" <?= $vendedor_sel==''?'selected':'' ?>>Todos</option>
-                    <?php foreach($vendedoresList as $v): ?>
-                    <option value="<?= $v['id'] ?>" <?= $vendedor_sel==$v['id']?'selected':'' ?>><?= htmlspecialchars($v['nombre']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <button type="submit" class="btn-generate"><i class="bi bi-filter"></i> Filtrar</button>
-            </div>
-            <div class="filter-group">
-                <button type="submit" name="export_ventas" value="json" class="btn-export"><i class="bi bi-file-earmark-code"></i> JSON</button>
-                <button type="submit" name="export_ventas" value="excel" class="btn-export"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
-            </div>
-        </form>
-        <div class="table-container">
-            <table class="report-table">
-                <thead><tr><th>Boleta</th><th>Fecha</th><th>Vendedor</th><th>Total</th><th>Tipo</th><th>n° Documento</th></tr></thead>
-                <tbody>
-                    <?php foreach($ventasRows as $r): ?>
-                    <tr>
-                        <td><?= $r['boleta_id'] ?></td>
-                        <td><?= $r['fecha'] ?></td>
-                        <td><?= htmlspecialchars($r['vendedor']) ?></td>
-                        <td>$<?= number_format($r['total'],0,',','.') ?></td>
-                        <td><?= htmlspecialchars($r['tipo_documento']) ?></td>
-                        <td><?= htmlspecialchars($r['numero_documento']) ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-function showSessions(tipo) {
-    const sessions = document.querySelectorAll('.session-card');
-    const tabs = document.querySelectorAll('.tab-btn');
-    
-    // Actualizar tabs activos
-    tabs.forEach(tab => tab.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    // Filtrar sesiones
-    sessions.forEach(session => {
-        if (tipo === 'todas') {
-            session.style.display = 'block';
-        } else {
-            const isMatch = session.classList.contains(`session-${tipo === 'abiertas' ? 'abierta' : 'cerrada'}`);
-            session.style.display = isMatch ? 'block' : 'none';
-        }
-    });
-}
-
 function cerrarSesion(sesionId, vendedor) {
     if (confirm(`¿Cerrar la sesión de caja de ${vendedor}?`)) {
-        // Aquí podrías abrir un modal específico para cerrar la caja
-        // o redirigir a un formulario de cierre
-        alert('Función de cierre rápido en desarrollo. Use el formulario de "Cerrar Caja".');
-    }
-}
-
-function verDetalles(sesionId) {
-    // Abrir nueva pestaña con ventas de la sesión
-    window.open('ventas_sesion.php?sesion_id=' + sesionId, '_blank');
-}
-
-// Datos para gráfico de ventas
-const ventasData = <?= json_encode($ventasRows) ?>;
-const labels = ventasData.map(v => v.fecha);
-const datos = ventasData.map(v => parseFloat(v.total));
-new Chart(document.getElementById('ventasChart').getContext('2d'), {
-    type: 'bar',
-    data: {
-        labels: labels,
-        datasets: [{
-            label: 'Total Ventas',
-            data: datos,
-            backgroundColor: 'rgba(72, 219, 251, 0.5)',
-            borderColor: '#48dbfb',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: { beginAtZero: true }
+        // Redirigir al formulario de cerrar caja con la sesión seleccionada
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+            <input type="hidden" name="action" value="cerrar_caja">
+            <input type="hidden" name="sesion_id" value="${sesionId}">
+            <input type="hidden" name="monto_final" value="0">
+            <input type="hidden" name="observaciones" value="Cerrado desde sesiones activas">
+        `;
+        document.body.appendChild(form);
+        
+        // Solicitar monto final
+        const montoFinal = prompt('Ingrese el monto final de la caja:');
+        if (montoFinal !== null && !isNaN(montoFinal)) {
+            form.querySelector('input[name="monto_final"]').value = montoFinal;
+            form.submit();
         }
     }
-});
+}
 
 // Auto-hide alerts
 document.addEventListener('DOMContentLoaded', function() {

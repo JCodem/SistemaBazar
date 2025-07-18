@@ -11,6 +11,7 @@ if (isset($_SESSION['user_nombre'])) {
 ?>
 
 <?php // VISTA PARCIAL POS: se carga dentro del layout_vendedor.php. HTML y head removidos. ?>
+  <style>  
     :root {
       --primary-color: #2563eb;
       --secondary-color: #f1f5f9;
@@ -390,12 +391,6 @@ if (isset($_SESSION['user_nombre'])) {
           <span><?php echo $nombre; ?></span>
         </a>
         <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/dashboard.php">
-            <i class="bi bi-house-door"></i> Dashboard
-          </a></li>
-          <li><a class="dropdown-item" href="/SistemaBazar/public_html/vendedor/inventario.php">
-            <i class="bi bi-box"></i> Inventario
-          </a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php">
             <i class="bi bi-box-arrow-right"></i> Cerrar Sesión

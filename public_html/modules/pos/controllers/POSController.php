@@ -63,7 +63,7 @@ class POSController {
         }
     }
 
-    public function processTransaction($items, $paymentMethod, $total, $documentType = 'boleta', $userId = null, $sessionId = null) {
+    public function processTransaction($items, $paymentMethod, $total, $documentType = 'boleta', $userId = null, $sessionId = null, $customerData = null) {
         try {
             $this->db->beginTransaction();
 
@@ -72,24 +72,54 @@ class POSController {
                 $userId = $_SESSION['user_id'];
             }
 
-            // Obtener el id de la sesión de caja abierta si no se pasa $sessionId
-            if (!$sessionId && $userId) {
-                $stmtCaja = $this->db->prepare("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' LIMIT 1");
-                $stmtCaja->execute([$userId]);
-                $rowCaja = $stmtCaja->fetch(\PDO::FETCH_ASSOC);
-                if ($rowCaja && isset($rowCaja['id'])) {
-                    $sessionId = $rowCaja['id'];
+            
+            // Manejar datos del cliente si es factura
+            $clienteId = null;
+            if ($documentType === 'factura' && $customerData && !empty($customerData['rut']) && !empty($customerData['razon_social'])) {
+                error_log("POSController - Procesando cliente para factura: " . print_r($customerData, true));
+                
+                // Buscar si el cliente ya existe por RUT de empresa
+                $stmt = $this->db->prepare("SELECT id FROM clientes WHERE rut_empresa = ? LIMIT 1");
+                $stmt->execute([$customerData['rut']]);
+                $existingClient = $stmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($existingClient) {
+                    $clienteId = $existingClient['id'];
+                    error_log("Cliente existente encontrado con ID: " . $clienteId);
+                    
+                    // Actualizar los datos del cliente existente si se proporcionan
+                    if (!empty($customerData['direccion']) || !empty($customerData['rut_persona']) || !empty($customerData['nombre_persona'])) {
+                        $updateStmt = $this->db->prepare("UPDATE clientes SET direccion = COALESCE(?, direccion), rut = COALESCE(?, rut), nombre = COALESCE(?, nombre) WHERE id = ?");
+                        $updateStmt->execute([
+                            $customerData['direccion'] ?: null,
+                            $customerData['rut_persona'] ?: null,
+                            $customerData['nombre_persona'] ?: null,
+                            $clienteId
+                        ]);
+                        error_log("Cliente actualizado con nueva información de contacto");
+                    }
                 } else {
-                    throw new \Exception('No hay sesión de caja abierta para este usuario.');
+                    // Crear nuevo cliente
+                    error_log("Creando nuevo cliente con dirección: " . ($customerData['direccion'] ?: 'VACÍA'));
+                    $stmt = $this->db->prepare("INSERT INTO clientes (rut_empresa, razon_social, direccion, rut, nombre, tipo_cliente) 
+                                               VALUES (?, ?, ?, ?, ?, 'empresa')");
+                    $stmt->execute([
+                        $customerData['rut'],
+                        $customerData['razon_social'],
+                        $customerData['direccion'] ?: null,
+                        $customerData['rut_persona'] ?: null,
+                        $customerData['nombre_persona'] ?: null
+                    ]);
+                    $clienteId = $this->db->lastInsertId();
+                    error_log("Nuevo cliente creado con ID: " . $clienteId);
                 }
             }
-
-            // Generar número de documento
+            
             $documentNumber = strtoupper($documentType) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $this->db->prepare("INSERT INTO ventas (usuario_id, total, metodo_pago, tipo_documento, numero_documento, fecha, sesion_caja_id) 
-                                       VALUES (?, ?, ?, ?, ?, NOW(), ?)");
-            $stmt->execute([$userId, $total, $paymentMethod, $documentType, $documentNumber, $sessionId]);
+            $stmt = $this->db->prepare("INSERT INTO ventas (usuario_id, cliente_id, total, metodo_pago, tipo_documento, numero_documento, fecha, sesion_caja_id) 
+                                       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)");
+            $stmt->execute([$userId, $clienteId, $total, $paymentMethod, $documentType, $documentNumber, $sessionId]);
             $ventaId = $this->db->lastInsertId();
 
             foreach ($items as $item) {
@@ -103,6 +133,14 @@ class POSController {
             }
 
             $this->db->commit();
+            
+            // Log para debugging
+            if ($clienteId) {
+                error_log("Venta {$ventaId} creada con cliente {$clienteId} para {$documentType}");
+            } else {
+                error_log("Venta {$ventaId} creada sin cliente para {$documentType}");
+            }
+            
             return $ventaId;
         } catch (\Exception $e) {
             $this->db->rollBack();
