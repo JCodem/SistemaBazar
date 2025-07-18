@@ -375,31 +375,7 @@ if (isset($_SESSION['user_nombre'])) {
       }
     }
   </style>
-</head>
-<!-- Header -->
-<nav class="navbar navbar-expand-lg" style="background: var(--light-color); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-light);">
-  <div class="container-fluid">
-    <div class="navbar-brand fw-bold text-primary">
-      <i class="bi bi-shop"></i>
-      Sistema Bazar - POS
-    </div>
-    
-    <div class="navbar-nav ms-auto">
-      <div class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
-          <i class="bi bi-person-circle"></i>
-          <span><?php echo $nombre; ?></span>
-        </a>
-        <ul class="dropdown-menu">
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php">
-            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-          </a></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</nav>
+
 
     </div>
   </nav>

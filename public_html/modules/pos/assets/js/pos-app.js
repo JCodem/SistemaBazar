@@ -144,7 +144,7 @@ function performSearch(query) {
   formData.append('action', 'search');
   formData.append('query', query);
   
-  fetch('../ajax_handler.php', {
+  fetch('/SistemaBazar/public_html/modules/pos/ajax_handler.php', {
     method: 'POST',
     body: formData
   })
@@ -613,7 +613,7 @@ function completeSale() {
   }
   
   // Send to server
-  fetch('../ajax_handler.php', {
+  fetch('/SistemaBazar/public_html/modules/pos/ajax_handler.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(saleData)

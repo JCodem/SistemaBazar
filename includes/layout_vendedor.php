@@ -19,61 +19,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- POS CSS -->
-  <link rel="stylesheet" href="assets/css/pos.css">
+  
   <!-- Layout Vendedor CSS - DEBE IR AL FINAL PARA SOBRESCRIBIR BOOTSTRAP -->
-  <link rel="stylesheet" href="/assets/css/layout_vendedor.css">
+
 </head>
 <body>
 
-<!-- Botón toggle para la sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle">
-  <i class="bi bi-list" style="font-size: 1.2rem;"></i>
-</button>
 
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-  <!-- Header del usuario -->
 
-  <div class="sidebar-header" style="position:relative;">
-    <div class="user-avatar" id="userMenuToggle" style="cursor:pointer;">
-      <?= strtoupper(substr($nombre, 0, 1)) ?>
-    </div>
-    <h4 class="user-name" id="userMenuToggleName" style="cursor:pointer;"><?= $nombre ?></h4>
-    <p class="user-role">Vendedor</p>
-    <!-- Dropdown menu -->
-    <div id="userDropdown" style="display:none; position:absolute; top:90px; left:50%; transform:translateX(-50%); background:#222b3a; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:2000;">
-      <a href="/logout.php" class="nav-link logout-link" style="display:flex; align-items:center; gap:0.5rem; padding:1rem; color:#ff6b6b; text-decoration:none; border-radius:12px;">
-        <i class="bi bi-box-arrow-right nav-icon"></i>
-        <span class="nav-text">Cerrar Sesión</span>
-      </a>
-    </div>
-  </div>
 
-  <!-- Navegación principal -->
-  <div class="sidebar-nav">
-    <div class="nav-section">
-      <div class="nav-section-title">Sistema Bazar</div>
-      
-      <div class="nav-item">
-        <a href="../modules/pos/" class="nav-link <?= in_array($current_page, ['dashboard.php', 'pos.php', 'index.php']) ? 'active' : '' ?>">
-          <i class="bi bi-cart3 nav-icon"></i>
-          <span class="nav-text">Punto de Venta</span>
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sección de logout (oculta, ahora en el menú de usuario) -->
-  <!-- <div class="logout-section">
-    <div class="nav-item">
-      <a href="/logout.php" class="nav-link logout-link">
-        <i class="bi bi-box-arrow-right nav-icon"></i>
-        <span class="nav-text">Cerrar Sesión</span>
-      </a>
-    </div>
-  </div> -->
-</div>
 
 <!-- Inicio del contenido -->
 <div class="main-content" id="mainContent">
