@@ -92,6 +92,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
       background-color: var(--bg-primary);
       color: var(--text-primary);
       transition: var(--transition);
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      display: flex !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      min-height: 100vh !important;
     }
 
     .sidebar {
@@ -255,39 +269,44 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .main-content {
-      flex-grow: 1;
-      background: var(--bg-primary);
-      min-height: 100vh;
-      position: relative;
-      margin-left: var(--sidebar-width);
-      transition: var(--transition-slow);
-      width: calc(100% - var(--sidebar-width));
+      flex-grow: 1 !important;
+      background: var(--bg-primary) !important;
+      min-height: 100vh !important;
+      position: relative !important;
+      margin-left: var(--sidebar-width) !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      width: calc(100% - var(--sidebar-width)) !important;
     }
 
     .main-content.expanded {
-      margin-left: 0;
-      width: 100%;
+      margin-left: 0 !important;
+      width: 100% !important;
     }
 
     .sidebar-toggle {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      z-index: 1001;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      color: var(--text-primary);
-      padding: 10px;
-      cursor: pointer;
-      transition: var(--transition);
-      display: block;
-      box-shadow: var(--shadow);
+      position: fixed !important;
+      top: 20px !important;
+      left: calc(var(--sidebar-width) + 20px) !important;
+      z-index: 1001 !important;
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 8px !important;
+      color: var(--text-primary) !important;
+      padding: 10px !important;
+      cursor: pointer !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      display: block !important;
+      box-shadow: var(--shadow) !important;
+    }
+
+    .sidebar-toggle.collapsed {
+      left: 20px !important;
     }
 
     .sidebar-toggle:hover {
-      background: var(--bg-hover);
-      box-shadow: var(--shadow-md);
+      background: var(--bg-hover) !important;
+      box-shadow: var(--shadow-md) !important;
+      transform: scale(1.05) !important;
     }
 
     .content-wrapper {
@@ -318,19 +337,39 @@ $current_page = basename($_SERVER['PHP_SELF']);
       }
     }
 
-    @media (min-width: 769px) {
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
+      }
+
       .main-content {
-        margin-left: var(--sidebar-width);
-        width: calc(100% - var(--sidebar-width));
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .content-wrapper {
+        padding: 4rem 1rem 1rem;
+      }
+    }
+
+    @media (min-width: 769px) {
+      body .main-content {
+        margin-left: var(--sidebar-width) !important;
+        width: calc(100% - var(--sidebar-width)) !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       }
       
-      .sidebar-toggle {
-        left: calc(var(--sidebar-width) + 20px);
-        transition: left var(--transition-slow);
+      .sidebar.collapsed {
+        transform: translateX(-100%) !important;
       }
       
-      .sidebar.collapsed + .sidebar-toggle {
-        left: 20px;
+      body .main-content.expanded {
+        margin-left: 0 !important;
+        width: 100% !important;
       }
     }
 
@@ -407,7 +446,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <div class="nav-item">
         <a href="vendedores.php" class="nav-link <?= $current_page === 'vendedores.php' ? 'active' : '' ?>">
           <i class="bi bi-people nav-icon"></i>
-          <span class="nav-text">Gestión de Vendedores</span>
+          <span class="nav-text">Gestión de Usuarios</span>
         </a>
       </div>
     </div>
@@ -425,7 +464,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <div class="nav-item">
         <a href="apertura_cierre.php" class="nav-link <?= $current_page === 'apertura_cierre.php' ? 'active' : '' ?>">
           <i class="bi bi-calendar-check nav-icon"></i>
-          <span class="nav-text">Cierre del Día</span>
+          <span class="nav-text">Control de Caja</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <a href="historial_sesiones.php" class="nav-link <?= $current_page === 'historial_sesiones.php' ? 'active' : '' ?>">
+          <i class="bi bi-clock-history nav-icon"></i>
+          <span class="nav-text">Historial de Sesiones</span>
         </a>
       </div>
     </div>
@@ -473,6 +519,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const themeIcon = document.getElementById('themeIcon');
     let sidebarVisible = window.innerWidth > 768;
 
+    // Inicializar posición del botón toggle
+    if (window.innerWidth <= 768) {
+        sidebarToggle.classList.add('collapsed');
+    }
+
     // Theme management
     const currentTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', currentTheme);
@@ -508,6 +559,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
+            sidebarToggle.classList.toggle('collapsed');
+            
+            // Debug: verificar que las clases se están aplicando
+            console.log('Sidebar collapsed:', sidebar.classList.contains('collapsed'));
+            console.log('MainContent expanded:', mainContent.classList.contains('expanded'));
             
             const icon = sidebarToggle.querySelector('i');
             if (sidebar.classList.contains('collapsed')) {
@@ -539,10 +595,12 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebar.classList.remove('show');
             sidebar.classList.remove('collapsed');
             mainContent.classList.remove('expanded');
+            sidebarToggle.classList.remove('collapsed');
             sidebarVisible = true;
         } else if (newWidth <= 768 && sidebarVisible) {
             sidebar.classList.remove('collapsed', 'show');
             mainContent.classList.remove('expanded');
+            sidebarToggle.classList.add('collapsed');
             sidebarVisible = false;
         }
     });

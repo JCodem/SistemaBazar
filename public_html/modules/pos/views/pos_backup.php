@@ -16,22 +16,22 @@ if (isset($_SESSION['user_nombre'])) {
 <link rel="stylesheet" href="./assets/css/pos-styles.css">
 
 <!-- Header -->
-<nav class="navbar navbar-expand-lg" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); margin-bottom: 0; padding: 0.75rem 1.5rem;">
-  <div class="container-fluid" style="display: flex; justify-content: space-between; align-items: center;">
-    <div class="navbar-brand fw-bold" style="color: #2563eb; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">
-      <i class="bi bi-shop" style="font-size: 1.4rem; color: #2563eb;"></i>
+<nav class="navbar navbar-expand-lg" style="background: var(--light-color); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-light);">
+  <div class="container-fluid">
+    <div class="navbar-brand fw-bold text-primary">
+      <i class="bi bi-shop"></i>
       Punto de Venta
     </div>
     
-    <div class="navbar-nav" style="margin: 0;">
+    <div class="navbar-nav ms-auto">
       <div class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" style="color: #1e293b; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s;">
+        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
           <i class="bi bi-person-circle"></i>
           <span><?php echo $nombre; ?></span>
         </a>
-        <ul class="dropdown-menu" style="border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <ul class="dropdown-menu">
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="/logout.php" style="border-radius: 0.375rem; margin: 0.25rem; padding: 0.5rem 0.75rem; transition: background-color 0.2s;">
+          <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php">
             <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
           </a></li>
         </ul>
@@ -180,15 +180,6 @@ if (isset($_SESSION['user_nombre'])) {
                        id="customer-razon-social" 
                        class="pos-input" 
                        placeholder="Empresa S.A."
-                       required>
-              </div>
-              
-              <div class="mb-3">
-                <label for="customer-direccion" class="form-label fw-semibold">Dirección *</label>
-                <input type="text" 
-                       id="customer-direccion" 
-                       class="pos-input" 
-                       placeholder="Av. Libertador 123, Comuna, Ciudad"
                        required>
               </div>
               

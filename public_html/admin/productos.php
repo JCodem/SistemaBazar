@@ -205,8 +205,16 @@ $totalPages = (int)ceil($totalProducts / $limit);
 // Obtener productos con ordenamiento
 $query = "SELECT * FROM productos $where_clause ORDER BY $sort_by $sort_order LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
-$execParams = array_merge($params, [$limit, $offset]);
-$stmt->execute($execParams);
+
+// Ejecutar con parámetros, especificando tipos para LIMIT y OFFSET
+$paramIndex = 1;
+foreach ($params as $param) {
+    $stmt->bindValue($paramIndex++, $param);
+}
+$stmt->bindValue($paramIndex++, $limit, PDO::PARAM_INT);
+$stmt->bindValue($paramIndex, $offset, PDO::PARAM_INT);
+
+$stmt->execute();
 $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Estadísticas de stock
@@ -333,6 +341,75 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
 .stat-card:hover::before {
     opacity: 1;
+}
+
+.clickable-stat {
+    cursor: pointer;
+    position: relative;
+}
+
+.clickable-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-primary);
+}
+
+.clickable-stat:active {
+    transform: translateY(-2px);
+}
+
+.clickable-stat::after {
+    content: '👆 Click para filtrar';
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.clickable-stat:hover::after {
+    opacity: 1;
+}
+
+/* Texto especial para el widget de total productos */
+.stat-card.clickable-stat:first-child::after {
+    content: '👆 Click para limpiar filtros';
+}
+
+.stat-card.clickable-stat:first-child:hover::after {
+    opacity: 1;
+}
+
+.stat-card.active-filter {
+    border-color: var(--accent-primary);
+    background: linear-gradient(135deg, var(--bg-card), rgba(59, 130, 246, 0.1));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card.active-filter::before {
+    opacity: 1;
+}
+
+.stat-card.active-filter::after {
+    content: '✓ Filtro activo';
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+/* Texto especial para el widget de total productos cuando NO hay filtros */
+.stat-card.clickable-stat:first-child.active-filter::after {
+    content: '✓ Sin filtros aplicados';
+    color: var(--accent-success);
 }
 
 .stat-icon {
@@ -1086,31 +1163,31 @@ html {
 
     <!-- Estadísticas de Inventario -->
     <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card clickable-stat <?= empty($stock_filter) && empty($search) ? 'active-filter' : '' ?>" onclick="clearFilters()">
             <div class="stat-icon total">📦</div>
             <div class="stat-value"><?= number_format($stats['total_productos']) ?></div>
             <div class="stat-label">Total Productos</div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card clickable-stat <?= $stock_filter === 'agotado' ? 'active-filter' : '' ?>" onclick="filterByStock('agotado')">
             <div class="stat-icon agotado">⛔</div>
             <div class="stat-value"><?= number_format($stats['productos_agotados']) ?></div>
             <div class="stat-label">Productos Agotados</div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card clickable-stat <?= $stock_filter === 'bajo' ? 'active-filter' : '' ?>" onclick="filterByStock('bajo')">
             <div class="stat-icon bajo">⚠️</div>
             <div class="stat-value"><?= number_format($stats['stock_bajo']) ?></div>
             <div class="stat-label">Stock Bajo</div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card clickable-stat <?= $stock_filter === 'medio' ? 'active-filter' : '' ?>" onclick="filterByStock('medio')">
             <div class="stat-icon medio">📊</div>
             <div class="stat-value"><?= number_format($stats['stock_medio']) ?></div>
             <div class="stat-label">Stock Medio</div>
         </div>
         
-        <div class="stat-card">
+        <div class="stat-card clickable-stat <?= $stock_filter === 'alto' ? 'active-filter' : '' ?>" onclick="filterByStock('alto')">
             <div class="stat-icon alto">✅</div>
             <div class="stat-value"><?= number_format($stats['stock_alto']) ?></div>
             <div class="stat-label">Stock Alto</div>
@@ -1451,6 +1528,47 @@ function sortTable(column) {
     urlParams.delete('page'); // Reset to first page when sorting
     
     window.location.search = urlParams.toString();
+}
+
+// Función para filtrar por stock desde los widgets
+function filterByStock(stockFilter) {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Si ya está aplicado el mismo filtro, lo quitamos (toggle)
+    if (urlParams.get('stock_filter') === stockFilter) {
+        urlParams.delete('stock_filter');
+    } else {
+        urlParams.set('stock_filter', stockFilter);
+    }
+    
+    // Reset page to 1 when filtering
+    urlParams.delete('page');
+    
+    // También podemos limpiar la búsqueda de texto para mostrar solo el filtro de stock
+    // urlParams.delete('search');
+    
+    window.location.search = urlParams.toString();
+}
+
+// Función para limpiar todos los filtros
+function clearFilters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Limpiar todos los filtros
+    urlParams.delete('stock_filter');
+    urlParams.delete('search');
+    urlParams.delete('page');
+    
+    // Mantener solo los parámetros de ordenamiento si existen
+    const sortBy = urlParams.get('sort_by');
+    const sortOrder = urlParams.get('sort_order');
+    
+    // Crear nueva URL solo con parámetros de ordenamiento si existen
+    const newParams = new URLSearchParams();
+    if (sortBy) newParams.set('sort_by', sortBy);
+    if (sortOrder) newParams.set('sort_order', sortOrder);
+    
+    window.location.search = newParams.toString();
 }
 
 // Función mejorada para navegación de páginas

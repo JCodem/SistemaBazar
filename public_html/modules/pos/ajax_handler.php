@@ -105,20 +105,39 @@ switch ($action) {
         
         if ($data) {
             try {
-                // Extract document type from the data
+                // Extract document type and customer data from the data
                 $documentType = $data['document_type'] ?? 'boleta';
+                
+                // Preparar datos del cliente para facturas
+                $customerData = null;
+                if ($documentType === 'factura') {
+                    $customerData = [
+                        'rut' => $data['customer_rut'] ?? '',
+                        'razon_social' => $data['customer_razon_social'] ?? '',
+                        'direccion' => $data['customer_direccion'] ?? '',
+                        'rut_persona' => $data['customer_rut_persona'] ?? '',
+                        'nombre_persona' => $data['customer_nombre_persona'] ?? ''
+                    ];
+                    
+                    // Log para debugging
+                    error_log("AJAX Handler - Datos del cliente recibidos: " . print_r($customerData, true));
+                }
                 
                 $transactionId = $posController->processTransaction(
                     $data['items'], 
                     $data['payment_method'], 
                     $data['total'],
-                    $documentType
+                    $documentType,
+                    null, // userId - será obtenido de la sesión
+                    null, // sessionId - por ahora null
+                    $customerData // datos del cliente
                 );
                 
                 echo json_encode([
                     'success' => true,
                     'transactionId' => $transactionId,
-                    'documentType' => $documentType
+                    'documentType' => $documentType,
+                    'customerData' => $customerData
                 ]);
             } catch (Exception $e) {
                 echo json_encode([

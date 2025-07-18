@@ -11,7 +11,7 @@ function obtenerEstadisticas($conn) {
     $result = $conn->query($query);
     $stats['ventas_hoy'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total_hoy'] : 0;
     
-    // Total ventas de ayer
+    // Total ventas de ayer para comparación
     $query = "SELECT COALESCE(SUM(total), 0) as total_ayer FROM ventas WHERE DATE(fecha) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
     $result = $conn->query($query);
     $stats['ventas_ayer'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total_ayer'] : 0;
@@ -24,35 +24,35 @@ function obtenerEstadisticas($conn) {
         $stats['cambio_ventas'] = $stats['ventas_hoy'] > 0 ? 100 : 0;
     }
     
-    // Vendedores activos
-    $query = "SELECT COUNT(*) as total FROM usuarios WHERE rol IN ('vendedor', 'jefe')";
+    // Vendedores activos con caja autorizada + jefes (simplificado)
+    $query = "SELECT COUNT(DISTINCT u.id) as total 
+              FROM usuarios u 
+              LEFT JOIN sesiones_caja sc ON u.id = sc.usuario_id AND sc.fecha_cierre IS NULL
+              WHERE (u.rol = 'vendedor' AND sc.id IS NOT NULL) 
+                 OR u.rol = 'jefe'";
     $result = $conn->query($query);
-    $stats['vendedores'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
+    $stats['vendedores_activos'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
     
-    // Productos en stock
-    $query = "SELECT COUNT(*) as total FROM productos WHERE stock > 0";
+    // Estadísticas unificadas de productos
+    $query = "SELECT 
+                COUNT(*) as total_productos,
+                SUM(CASE WHEN stock > 0 THEN 1 ELSE 0 END) as productos_stock,
+                SUM(CASE WHEN stock < 15 AND stock > 0 THEN 1 ELSE 0 END) as stock_bajo,
+                SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) as sin_stock
+              FROM productos";
     $result = $conn->query($query);
-    $stats['productos_stock'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
-    
-    // Transacciones del día
-    $query = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = CURDATE()";
-    $result = $conn->query($query);
-    $stats['transacciones_hoy'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
-    
-    // Productos con stock bajo (<=5 pero >0)
-    $query = "SELECT COUNT(*) as total FROM productos WHERE stock <= 5 AND stock > 0";
-    $result = $conn->query($query);
-    $stats['stock_bajo'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
-    
-    // Productos sin stock (=0)
-    $query = "SELECT COUNT(*) as total FROM productos WHERE stock = 0";
-    $result = $conn->query($query);
-    $stats['sin_stock'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
-    
-    // Total productos
-    $query = "SELECT COUNT(*) as total FROM productos";
-    $result = $conn->query($query);
-    $stats['total_productos'] = $result ? $result->fetch(PDO::FETCH_ASSOC)['total'] : 0;
+    if ($result) {
+        $productos_data = $result->fetch(PDO::FETCH_ASSOC);
+        $stats['total_productos'] = (int)$productos_data['total_productos'];
+        $stats['productos_stock'] = (int)$productos_data['productos_stock'];
+        $stats['stock_bajo'] = (int)$productos_data['stock_bajo'];
+        $stats['sin_stock'] = (int)$productos_data['sin_stock'];
+    } else {
+        $stats['total_productos'] = 0;
+        $stats['productos_stock'] = 0;
+        $stats['stock_bajo'] = 0;
+        $stats['sin_stock'] = 0;
+    }
     
     return $stats;
 }
@@ -75,7 +75,36 @@ function obtenerDatosGraficas($conn) {
         }
     }
     
-    // Top productos más vendidos
+    // Transacciones de la semana actual (lunes a domingo)
+    $datos['transacciones_semana'] = [];
+    
+    // Obtener el lunes de esta semana
+    $hoy = new DateTime();
+    $dia_semana = $hoy->format('N'); // 1=lunes, 7=domingo
+    $lunes = clone $hoy;
+    $lunes->sub(new DateInterval('P' . ($dia_semana - 1) . 'D'));
+    
+    $dias_es = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    
+    for ($i = 0; $i < 7; $i++) {
+        $fecha_actual = clone $lunes;
+        $fecha_actual->add(new DateInterval('P' . $i . 'D'));
+        $fecha_str = $fecha_actual->format('Y-m-d');
+        
+        $query = "SELECT COUNT(*) as transacciones, COALESCE(SUM(total), 0) as monto 
+                  FROM ventas WHERE DATE(fecha) = '$fecha_str'";
+        $result = $conn->query($query);
+        $data = $result ? $result->fetch(PDO::FETCH_ASSOC) : ['transacciones' => 0, 'monto' => 0];
+        
+        $datos['transacciones_semana'][] = [
+            'dia' => $dias_es[$i],
+            'fecha' => $fecha_str,
+            'transacciones' => (int)$data['transacciones'],
+            'monto' => (float)$data['monto']
+        ];
+    }
+    
+    // Top productos más vendidos (últimos 30 días)
     $query = "SELECT p.nombre, SUM(vd.cantidad) as cantidad_vendida
               FROM productos p
               JOIN venta_detalles vd ON p.id = vd.producto_id
@@ -138,13 +167,100 @@ $datosGraficas = obtenerDatosGraficas($conn);
     font-weight: 500;
 }
 
-/* Grid de estadísticas minimalista */
+/* Grid de estadísticas reorganizado */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
+
+/* Widget unificado de productos */
+.unified-product-widget {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.unified-product-widget:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-light);
+}
+
+.widget-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.widget-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    background: var(--accent-primary);
+    color: white;
+}
+
+.widget-title {
+    color: var(--text-primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.product-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.product-stat-item {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-tertiary);
+}
+
+.product-stat-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.product-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.product-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.product-stat-item.total { border-left: 3px solid var(--accent-primary); }
+.product-stat-item.stock { border-left: 3px solid var(--accent-success); }
+.product-stat-item.bajo { border-left: 3px solid var(--accent-warning); }
+.product-stat-item.agotado { border-left: 3px solid var(--accent-danger); }
 
 .stat-card {
     background: var(--bg-card);
@@ -246,12 +362,15 @@ $datosGraficas = obtenerDatosGraficas($conn);
     color: var(--text-muted);
 }
 
-/* Grid de contenido principal */
+/* Grid de contenido principal reorganizado */
 .content-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Tarjetas de gráficas minimalistas */
@@ -261,6 +380,10 @@ $datosGraficas = obtenerDatosGraficas($conn);
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .chart-title {
@@ -277,6 +400,14 @@ $datosGraficas = obtenerDatosGraficas($conn);
     position: relative;
     height: 300px;
     margin-bottom: 1rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.chart-container canvas {
+    max-width: 100% !important;
+    height: auto !important;
 }
 
 /* Acciones rápidas minimalistas */
@@ -338,11 +469,110 @@ $datosGraficas = obtenerDatosGraficas($conn);
     line-height: 1.4;
 }
 
-/* Responsive */
+/* Responsive reorganizado */
 @media (max-width: 1200px) {
     .content-grid {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .product-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Estilos para gráfico de barras semanal */
+.weekly-chart {
+    display: flex;
+    align-items: end;
+    justify-content: space-around;
+    height: 200px;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.chart-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    max-width: 60px;
+}
+
+.chart-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px 4px 0 0;
+    min-width: 40px;
+    margin: 0 2px;
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 20px;
+}
+
+.chart-bar:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%);
+    transform: scaleY(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.chart-bar-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.chart-bar-value {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.chart-bar:hover .chart-bar-value {
+    opacity: 1;
+}
+
+/* Estilos para día actual en gráfico semanal */
+.chart-bar.current-day {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.chart-bar.current-day:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    transform: scaleY(1.1);
+}
+
+.chart-bar-label.current-day-label {
+    color: var(--accent-warning);
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -584,9 +814,10 @@ $datosGraficas = obtenerDatosGraficas($conn);
         <p class="current-time" id="currentTime"></p>
     </div>
 
-    <!-- Grid de Estadísticas -->
+    <!-- Grid de Estadísticas Reorganizado -->
     <div class="stats-grid">
-        <div class="stat-card animate-up" style="animation-delay: 0.1s">
+        <!-- Widget 1: Ventas de Hoy -->
+        <div class="stat-card animate-up" style="animation-delay: 0.1s; cursor: pointer;" onclick="redirectToInformes()">
             <div class="stat-icon sales">💰</div>
             <span class="stat-value">$<?= number_format($estadisticas['ventas_hoy'], 0, ',', '.') ?></span>
             <div class="stat-label">Ventas de Hoy</div>
@@ -601,59 +832,45 @@ $datosGraficas = obtenerDatosGraficas($conn);
             <?php endif; ?>
         </div>
         
+        <!-- Widget 2: Vendedores Activos -->
         <div class="stat-card animate-up" style="animation-delay: 0.2s">
             <div class="stat-icon users">👥</div>
-            <span class="stat-value"><?= $estadisticas['vendedores'] ?></span>
+            <span class="stat-value"><?= $estadisticas['vendedores_activos'] ?></span>
             <div class="stat-label">Vendedores Activos</div>
+            <div class="stat-change neutral">Con caja abierta + jefes</div>
         </div>
         
-        <div class="stat-card animate-up" style="animation-delay: 0.3s">
-            <div class="stat-icon products">📦</div>
-            <span class="stat-value"><?= $estadisticas['productos_stock'] ?></span>
-            <div class="stat-label">Productos en Stock</div>
-            <div class="stat-change negative">de <?= $estadisticas['total_productos'] ?> total</div>
-        </div>
-        
-        <div class="stat-card animate-up" style="animation-delay: 0.4s">
-            <div class="stat-icon transactions">📊</div>
-            <span class="stat-value"><?= $estadisticas['transacciones_hoy'] ?></span>
-            <div class="stat-label">Transacciones Hoy</div>
-        </div>
-        
-        <div class="stat-card animate-up" style="animation-delay: 0.5s">
-            <div class="stat-icon alert">⚠️</div>
-            <span class="stat-value"><?= $estadisticas['stock_bajo'] ?></span>
-            <div class="stat-label">Stock Bajo (≤5)</div>
-            <?php if ($estadisticas['stock_bajo'] > 0): ?>
-            <div class="stat-change negative">Requiere reposición</div>
-            <?php else: ?>
-            <div class="stat-change positive">Stock controlado</div>
-            <?php endif; ?>
-        </div>
-        
-        <div class="stat-card animate-up" style="animation-delay: 0.6s">
-            <div class="stat-icon critical">🚫</div>
-            <span class="stat-value"><?= $estadisticas['sin_stock'] ?></span>
-            <div class="stat-label">Sin Stock</div>
-            <?php if ($estadisticas['sin_stock'] > 0): ?>
-            <div class="stat-change negative">Atención urgente</div>
-            <?php else: ?>
-            <div class="stat-change positive">Todo disponible</div>
-            <?php endif; ?>
-        </div>
-        
-        <div class="stat-card animate-up" style="animation-delay: 0.7s">
-            <div class="stat-icon inventory">📋</div>
-            <span class="stat-value"><?= $estadisticas['total_productos'] ?></span>
-            <div class="stat-label">Total Productos</div>
-            <div class="stat-change neutral"><?= $estadisticas['productos_stock'] ?> disponibles</div>
+        <!-- Widget 3: Gestión de Productos Unificado -->
+        <div class="unified-product-widget animate-up" style="animation-delay: 0.3s">
+            <div class="widget-header">
+                <div class="widget-icon">📦</div>
+                <h3 class="widget-title">Gestión de Productos</h3>
+            </div>
+            <div class="product-stats-grid">
+                <div class="product-stat-item total" onclick="redirectToProductos()">
+                    <span class="product-stat-value"><?= $estadisticas['total_productos'] ?></span>
+                    <div class="product-stat-label">Total</div>
+                </div>
+                <div class="product-stat-item stock" onclick="redirectToProductos('stock')">
+                    <span class="product-stat-value"><?= $estadisticas['productos_stock'] ?></span>
+                    <div class="product-stat-label">En Stock</div>
+                </div>
+                <div class="product-stat-item bajo" onclick="redirectToProductos('bajo')">
+                    <span class="product-stat-value"><?= $estadisticas['stock_bajo'] ?></span>
+                    <div class="product-stat-label">Stock Bajo</div>
+                </div>
+                <div class="product-stat-item agotado" onclick="redirectToProductos('agotado')">
+                    <span class="product-stat-value"><?= $estadisticas['sin_stock'] ?></span>
+                    <div class="product-stat-label">Agotados</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Grid de contenido principal -->
+    <!-- Grid de contenido principal reorganizado -->
     <div class="content-grid">
         <!-- Gráfica de ventas -->
-        <div class="chart-card animate-up" style="animation-delay: 0.8s">
+        <div class="chart-card animate-up" style="animation-delay: 0.4s">
             <h3 class="chart-title">
                 <i class="bi bi-graph-up"></i>
                 Ventas de los Últimos 7 Días
@@ -663,15 +880,49 @@ $datosGraficas = obtenerDatosGraficas($conn);
             </div>
         </div>
 
-        <!-- Top productos -->
-        <div class="chart-card animate-up" style="animation-delay: 0.9s">
+        <!-- Gráfico de transacciones semanales (Lunes a Domingo) -->
+        <div class="chart-card animate-up" style="animation-delay: 0.5s">
             <h3 class="chart-title">
-                <i class="bi bi-award"></i>
-                Productos Más Vendidos
+                <i class="bi bi-bar-chart"></i>
+                Transacciones de la Semana
             </h3>
             <div class="chart-container">
-                <canvas id="productsChart"></canvas>
+                <div class="weekly-chart">
+                    <?php 
+                    $max_transacciones = max(array_column($datosGraficas['transacciones_semana'], 'transacciones'));
+                    $max_transacciones = $max_transacciones > 0 ? $max_transacciones : 1;
+                    
+                    foreach ($datosGraficas['transacciones_semana'] as $dia): 
+                        $altura = $max_transacciones > 0 ? ($dia['transacciones'] / $max_transacciones) * 100 : 0;
+                        $es_hoy = $dia['fecha'] === date('Y-m-d');
+                    ?>
+                        <div class="chart-day">
+                            <div class="chart-bar <?= $es_hoy ? 'current-day' : '' ?>" 
+                                 style="height: <?= max($altura, 5) ?>%"
+                                 title="<?= $dia['dia'] ?>: <?= $dia['transacciones'] ?> transacciones - $<?= number_format($dia['monto'], 0, ',', '.') ?>"
+                                 onmouseenter="showChartTooltip(event, '<?= $dia['dia'] ?>', <?= $dia['transacciones'] ?>, <?= $dia['monto'] ?>)"
+                                 onmouseleave="hideChartTooltip()"
+                                 onmousemove="updateTooltipPosition(event)">
+                                <div class="chart-bar-value"><?= $dia['transacciones'] ?></div>
+                            </div>
+                            <div class="chart-bar-label <?= $es_hoy ? 'current-day-label' : '' ?>">
+                                <?= substr($dia['dia'], 0, 3) ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de productos más vendidos en sección separada -->
+    <div class="chart-card animate-up" style="animation-delay: 0.6s; margin-bottom: 2rem;">
+        <h3 class="chart-title">
+            <i class="bi bi-award"></i>
+            Top 5 Productos Más Vendidos (Últimos 30 días)
+        </h3>
+        <div class="chart-container" style="height: 250px;">
+            <canvas id="productsChart"></canvas>
         </div>
     </div>
 
@@ -742,6 +993,7 @@ function updateTime() {
 // Datos para las gráficas desde PHP
 const ventasData = <?= json_encode($datosGraficas['ventas_semana']) ?>;
 const productosData = <?= json_encode($datosGraficas['top_productos']) ?>;
+const transaccionesData = <?= json_encode($datosGraficas['transacciones_semana']) ?>;
 
 // Variables para almacenar las instancias de los charts
 let salesChart = null;
@@ -941,6 +1193,41 @@ function refreshStats() {
     */
 }
 
+// Función para redimensionar gráficos cuando cambie el layout
+function resizeCharts() {
+    setTimeout(() => {
+        if (salesChart) {
+            salesChart.resize();
+        }
+        if (productsChart) {
+            productsChart.resize();
+        }
+    }, 350); // Esperar a que termine la transición del sidebar (300ms + buffer)
+}
+
+// Escuchar cambios en el sidebar para redimensionar gráficos
+document.addEventListener('DOMContentLoaded', function() {
+    // Observer para detectar cambios en las clases del main-content
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    resizeCharts();
+                }
+            });
+        });
+        
+        observer.observe(mainContent, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
+    
+    // También escuchar resize de ventana
+    window.addEventListener('resize', resizeCharts);
+});
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     updateTime();
@@ -958,13 +1245,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // setInterval(refreshStats, 30000);
     
     // Efectos hover suaves para las tarjetas
-    document.querySelectorAll('.stat-card, .action-card').forEach(card => {
+    document.querySelectorAll('.stat-card, .action-card, .unified-product-widget, .product-stat-item').forEach(card => {
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px)';
+            this.style.transform = 'translateY(-4px)';
+            if (this.classList.contains('stat-card') || this.classList.contains('unified-product-widget')) {
+                this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }
         });
         
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0)';
+            if (this.classList.contains('stat-card') || this.classList.contains('unified-product-widget')) {
+                this.style.boxShadow = 'var(--shadow-sm)';
+            }
         });
     });
     
@@ -1011,7 +1304,7 @@ function showNotification(message, type = 'info') {
     });
 }
 
-// Verificar alertas de stock
+// Verificar alertas de stock con nuevas estadísticas
 <?php if ($estadisticas['sin_stock'] > 0): ?>
 setTimeout(() => {
     showNotification(`🚫 CRÍTICO: Hay <?= $estadisticas['sin_stock'] ?> productos SIN STOCK que necesitan reposición inmediata`, 'error');
@@ -1020,9 +1313,93 @@ setTimeout(() => {
 
 <?php if ($estadisticas['stock_bajo'] > 0): ?>
 setTimeout(() => {
-    showNotification(`⚠️ Hay <?= $estadisticas['stock_bajo'] ?> productos con stock bajo que requieren atención`, 'warning');
+    showNotification(`⚠️ Hay <?= $estadisticas['stock_bajo'] ?> productos con stock bajo (<15 unidades) que requieren atención`, 'warning');
 }, 2500);
 <?php endif; ?>
+
+<?php if ($estadisticas['vendedores_activos'] === 0): ?>
+setTimeout(() => {
+    showNotification(`👥 No hay vendedores con caja abierta en este momento`, 'info');
+}, 3500);
+<?php endif; ?>
+
+// Función para redirigir a informes del día actual
+function redirectToInformes() {
+    const today = new Date().toISOString().split('T')[0];
+    window.location.href = `informes.php?fecha_inicio=${today}&fecha_fin=${today}&tipo=dia`;
+}
+
+// Función para redirigir a productos con filtros
+function redirectToProductos(filtro) {
+    let url = 'productos.php';
+    
+    switch(filtro) {
+        case 'stock':
+            // Productos con stock > 0
+            url += '?stock_filter=stock';
+            break;
+        case 'bajo':
+            // Stock bajo (menos de 15)
+            url += '?stock_filter=bajo';
+            break;
+        case 'agotado':
+            // Sin stock
+            url += '?stock_filter=agotado';
+            break;
+        default:
+            // Total productos (sin filtros)
+            break;
+    }
+    
+    window.location.href = url;
+}
+
+// Función para mostrar tooltip en las barras del gráfico
+function showChartTooltip(event, dia, transacciones, monto) {
+    // Crear tooltip dinámico si no existe
+    let tooltip = document.getElementById('chart-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'chart-tooltip';
+        tooltip.style.cssText = `
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.2);
+        `;
+        document.body.appendChild(tooltip);
+    }
+    
+    tooltip.innerHTML = `
+        <strong>${dia}</strong><br>
+        Transacciones: ${transacciones}<br>
+        Monto: $${monto.toLocaleString('es-ES')}
+    `;
+    
+    tooltip.style.left = event.pageX + 10 + 'px';
+    tooltip.style.top = event.pageY - 10 + 'px';
+    tooltip.style.display = 'block';
+}
+
+function hideChartTooltip() {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
+function updateTooltipPosition(event) {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (tooltip && tooltip.style.display === 'block') {
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY - 10 + 'px';
+    }
+}
 </script>
 
 
