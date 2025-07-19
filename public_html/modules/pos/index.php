@@ -39,7 +39,7 @@ echo '<div style="position:relative;">';
 echo '<button id="userMenuBtn" style="background:#fff;border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.08);cursor:pointer;">'.strtoupper(substr($usuario,0,1)).'</button>';
 echo '<span style="margin-left:0.75rem;font-weight:500;">'.htmlspecialchars($usuario).'</span>';
 echo '<div id="userMenuDropdown" style="display:none;position:absolute;right:0;top:54px;background:#222b3a;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.15);min-width:180px;z-index:2002;">';
-echo '<a href="/SistemaBazar/public_html/logout.php" style="display:flex;align-items:center;gap:0.5rem;padding:1rem;color:#ff6b6b;text-decoration:none;border-radius:12px;font-weight:500;"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a>';
+echo '<a href="./logout.php" style="display:flex;align-items:center;gap:0.5rem;padding:1rem;color:#ff6b6b;text-decoration:none;border-radius:12px;font-weight:500;"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a>';
 echo '</div>';
 echo '</div>';
 echo '</div>';
