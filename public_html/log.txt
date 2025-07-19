@@ -1,0 +1,2 @@
+[2025-07-19 07:03:32] [::1] LOGIN OK: Usuario ID 4 (nico@bazar.com) - Rol: vendedor - SESSION: {"csrf_token":"9c29c9e901769edd6b82fd5d8fd7dddcac2dee61293b1e0bf4efbba5c3cd7128","user_id":"4","user_nombre":"Nicolas","user_rol":"vendedor"}
+[2025-07-19 07:03:32] [::1] REDIRECT: Usuario con rol 'vendedor' será enviado a vendedor/dashboard.php

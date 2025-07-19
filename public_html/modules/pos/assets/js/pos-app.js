@@ -559,16 +559,19 @@ function completeSale() {
   const documentType = document.querySelector('input[name="document_type"]:checked').value;
   const total = getTotalAmount();
   
-  // Validate document type data
+  // Validación estricta para factura en frontend
   if (documentType === 'factura') {
     const customerRut = document.getElementById('customer-rut').value.trim();
     const customerRazonSocial = document.getElementById('customer-razon-social').value.trim();
     const customerDireccion = document.getElementById('customer-direccion').value.trim();
-    
+    debugPOS('Validando datos de cliente para factura:', {customerRut, customerRazonSocial, customerDireccion});
     if (!customerRut || !customerRazonSocial || !customerDireccion) {
+      debugPOS('ERROR: Datos de cliente incompletos para factura');
       alert('Para factura, el RUT, Razón Social y Dirección son obligatorios');
       return;
     }
+  } else {
+    debugPOS('Tipo de documento es boleta: se permite venta sin datos de cliente');
   }
   
   // Validate cash payment

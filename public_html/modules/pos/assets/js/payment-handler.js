@@ -120,6 +120,21 @@ $(document).ready(function() {
 
     // NOTA: La funcionalidad de "Completar venta" está implementada en pos.js
     // para evitar conflictos y duplicación de código
+
+    // Refuerzo: Validación estricta para factura antes de enviar venta (si se implementa aquí en el futuro)
+    // Si se implementa el envío aquí, usar este bloque:
+    // $('#complete-sale').click(function() {
+    //   const documentType = $('input[name="document_type"]:checked').val();
+    //   if (documentType === 'factura') {
+    //     const customerRut = $('#customer-rut').val().trim();
+    //     const customerRazonSocial = $('#customer-razon-social').val().trim();
+    //     const customerDireccion = $('#customer-direccion').val().trim();
+    //     if (!customerRut || !customerRazonSocial || !customerDireccion) {
+    //       showToast('Para factura, el RUT, Razón Social y Dirección son obligatorios', 'danger');
+    //       return;
+    //     }
+    //   }
+    // });
     
     // Función auxiliar para mostrar notificaciones
     function showToast(message, type = 'success') {
