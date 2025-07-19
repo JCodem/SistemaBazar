@@ -144,7 +144,7 @@ function performSearch(query) {
   formData.append('action', 'search');
   formData.append('query', query);
   
-  fetch('/SistemaBazar/public_html/modules/pos/ajax_handler.php', {
+  fetch('./ajax_handler.php', {
     method: 'POST',
     body: formData
   })
