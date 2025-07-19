@@ -86,7 +86,7 @@ function escribir_log($mensaje) {
     $fecha = date('Y-m-d H:i:s');
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'CLI';
     $linea = "[$fecha] [$ip] $mensaje\n";
-    file_put_contents(__DIR__ . '/../includes/log.txt', $linea, FILE_APPEND);
+    file_put_contents(__DIR__ . '../log.txt', $linea, FILE_APPEND);
 }
 
 ?>
