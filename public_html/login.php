@@ -281,7 +281,7 @@ require_once '../includes/funciones.php'; // CSRF helpers
 <!-- Contenedor principal -->
 <div class="login-container">
     <div class="login-card">
-        <h3 class="text-center">Iniciar Sesión</h3>
+        <h3 class="text-center">Iniciar Sesión 1</h3>
 
     <?php if (isset($_SESSION['error'])): ?>
         <?php escribir_log("LOGIN UI ERROR: " . $_SESSION['error']); ?>
