@@ -77,13 +77,16 @@ class PDFController {
             $documentType = ucfirst($venta['tipo_documento']);
             $filename = "{$documentType}_{$venta['numero_documento']}.pdf";
 
-            // Siempre forzar descarga
+            // Siempre forzar descarga en todos los navegadores
             if (ob_get_length()) ob_end_clean();
             header_remove();
             header('Pragma: public');
             header('Expires: 0');
             header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
             header('Cache-Control: private', false);
+            header('Content-Type: application/force-download');
+            header('Content-Type: application/octet-stream');
+            header('Content-Type: application/download');
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Content-Transfer-Encoding: binary');
