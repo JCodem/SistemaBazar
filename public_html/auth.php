@@ -2,7 +2,6 @@
 <?php
 session_start();
 require_once '../includes/db.php';
-
 $correo = $_POST['correo'] ?? '';
 $contraseña = $_POST['contrasena'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
