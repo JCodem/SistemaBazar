@@ -33,30 +33,7 @@ if (esVendedor()) {
 // Obtener nombre de usuario
 $usuario = $_SESSION['usuario']['nombre'] ?? ($_SESSION['user_nombre'] ?? 'Usuario');
 
-// Renderizar menú de usuario y POS
-echo '<div style="width:100%;display:flex;justify-content:flex-end;align-items:center;gap:1rem;padding:1.5rem 2rem 0 2rem;position:relative;z-index:2001;">';
-echo '<div style="position:relative;">';
-echo '<button id="userMenuBtn" style="background:#fff;border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.08);cursor:pointer;">'.strtoupper(substr($usuario,0,1)).'</button>';
-echo '<span style="margin-left:0.75rem;font-weight:500;">'.htmlspecialchars($usuario).'</span>';
-echo '<div id="userMenuDropdown" style="display:none;position:absolute;right:0;top:54px;background:#222b3a;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.15);min-width:180px;z-index:2002;">';
-echo '<a href="./logout.php" style="display:flex;align-items:center;gap:0.5rem;padding:1rem;color:#ff6b6b;text-decoration:none;border-radius:12px;font-weight:500;"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a>';
-echo '</div>';
-echo '</div>';
-echo '</div>';
 
-echo '<script>
-document.addEventListener("DOMContentLoaded",function(){
-  var btn=document.getElementById("userMenuBtn");
-  var menu=document.getElementById("userMenuDropdown");
-  btn.addEventListener("click",function(e){
-    e.stopPropagation();
-    menu.style.display=menu.style.display==="block"?"none":"block";
-  });
-  document.addEventListener("click",function(e){
-    if(menu.style.display==="block"&&!menu.contains(e.target)&&e.target!==btn){menu.style.display="none";}
-  });
-});
-</script>';
 
 $posModule = new POSModule($conn);
 $posModule->initialize()->renderPOS();

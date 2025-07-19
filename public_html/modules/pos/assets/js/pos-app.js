@@ -690,7 +690,7 @@ function downloadSalePDF(ventaId, documentType) {
   try {
     debugPOS('Iniciando descarga de PDF para venta:', { ventaId, documentType });
     // Construir la URL del PDF
-    const pdfUrl = `../pdf_controller.php?venta_id=${ventaId}`;
+    const pdfUrl = '/SistemaBazar/public_html/modules/pos/pdf_controller.php?venta_id=' + ventaId;
     debugPOS('URL de descarga del PDF:', pdfUrl);
     // Crear un enlace temporal para la descarga
     const link = document.createElement('a');

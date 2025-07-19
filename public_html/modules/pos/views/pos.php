@@ -20,7 +20,7 @@ if (isset($_SESSION['user_nombre'])) {
   <div class="container-fluid" style="display: flex; justify-content: space-between; align-items: center;">
     <div class="navbar-brand fw-bold" style="color: #2563eb; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">
       <i class="bi bi-shop" style="font-size: 1.4rem; color: #2563eb;"></i>
-      Punto de Venta
+      Punto de Venta 
     </div>
     
     <div class="navbar-nav" style="margin: 0;">
@@ -31,7 +31,7 @@ if (isset($_SESSION['user_nombre'])) {
         </a>
         <ul class="dropdown-menu" style="border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="/logout.php" style="border-radius: 0.375rem; margin: 0.25rem; padding: 0.5rem 0.75rem; transition: background-color 0.2s;">
+          <li><a class="dropdown-item" href="/SistemaBazar/public_html/logout.php" style="border-radius: 0.375rem; margin: 0.25rem; padding: 0.5rem 0.75rem; transition: background-color 0.2s;">
             <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
           </a></li>
         </ul>

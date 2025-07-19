@@ -1,5 +1,14 @@
 <?php
 // Controlador para generar PDFs de boletas y facturas del POS
+
+// --- NO debe haber salida previa antes de los headers ---
+// Limpiar cualquier salida previa antes de los headers
+if (ob_get_level()) {
+    while (ob_get_level()) ob_end_clean();
+}
+// Desactivar salida de errores en PDF (solo log)
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 session_start();
 require_once '../../../includes/auth_middleware.php';
 require_once '../../../includes/db.php';
@@ -21,7 +30,7 @@ class PDFController {
             $stmt = $this->db->prepare("SELECT valor FROM configuracion WHERE clave = 'iva_porcentaje'");
             $stmt->execute();
             $ivaRate = $stmt->fetchColumn() ?: 19; // Default 19% si no existe
-            
+
             // Obtener datos de la venta
             $stmt = $this->db->prepare("
                 SELECT v.*, u.nombre as vendedor_nombre,
@@ -34,14 +43,14 @@ class PDFController {
             ");
             $stmt->execute([$ventaId]);
             $venta = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$venta) {
                 throw new Exception("Venta no encontrada");
             }
-            
+
             // Obtener detalles de la venta
             $stmt = $this->db->prepare("
-                SELECT vd.*, p.nombre as producto_nombre, p.codigo as producto_codigo
+                SELECT vd.*, p.nombre as producto_nombre, p.codigo_barras as producto_codigo
                 FROM venta_detalles vd
                 JOIN productos p ON vd.producto_id = p.id
                 WHERE vd.venta_id = ?
@@ -49,33 +58,39 @@ class PDFController {
             ");
             $stmt->execute([$ventaId]);
             $detalles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             // Generar HTML del PDF
             $html = $this->generatePDFHTML($venta, $detalles, $ivaRate);
-            
+
             // Configurar DomPDF
             $options = new Options();
             $options->set('defaultFont', 'Arial');
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
-            
+
             $dompdf = new Dompdf($options);
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-            
+
             // Nombre del archivo
             $documentType = ucfirst($venta['tipo_documento']);
             $filename = "{$documentType}_{$venta['numero_documento']}.pdf";
-            
-            if ($download) {
-                // Descargar el PDF
-                $dompdf->stream($filename, array('Attachment' => 1));
-            } else {
-                // Retornar el contenido del PDF
-                return $dompdf->output();
-            }
-            
+
+            // Siempre forzar descarga
+            if (ob_get_length()) ob_end_clean();
+            header_remove();
+            header('Pragma: public');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Cache-Control: private', false);
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Transfer-Encoding: binary');
+            header('Accept-Ranges: bytes');
+            echo $dompdf->output();
+            exit;
+
         } catch (Exception $e) {
             error_log("Error generando PDF: " . $e->getMessage());
             if ($download) {
@@ -89,15 +104,15 @@ class PDFController {
     
     private function generatePDFHTML($venta, $detalles, $ivaRate) {
         // Formatear fecha
-        $fecha = date('d/m/Y H:i', strtotime($venta['fecha']));
+        $fecha = date('d/m/Y H:i', isset($venta['fecha']) ? strtotime($venta['fecha']) : time());
         
         // Determinar tipo de documento
-        $documentType = $venta['tipo_documento'] === 'factura' ? 'FACTURA' : 'BOLETA';
+        $documentType = (isset($venta['tipo_documento']) && $venta['tipo_documento'] === 'factura') ? 'FACTURA' : 'BOLETA';
         
         // Calcular totales
-        $subtotal = floatval($venta['total']) / (1 + ($ivaRate / 100));
-        $ivaAmount = floatval($venta['total']) - $subtotal;
-        $total = floatval($venta['total']);
+        $total = isset($venta['total']) ? floatval($venta['total']) : 0;
+        $subtotal = $total / (1 + ($ivaRate / 100));
+        $ivaAmount = $total - $subtotal;
         
         $html = '<!DOCTYPE html>
 <html>
@@ -231,7 +246,7 @@ class PDFController {
         </div>
     </div>
 
-    <div class="document-type">' . $documentType . ' N° ' . htmlspecialchars($venta['numero_documento']) . '</div>
+    <div class="document-type">' . $documentType . ' N° ' . htmlspecialchars(isset($venta['numero_documento']) ? $venta['numero_documento'] : 'N/A') . '</div>
 
     <div class="sale-info">
         <div class="info-grid">
@@ -259,7 +274,7 @@ class PDFController {
     </div>';
 
         // Información del cliente para facturas
-        if ($venta['tipo_documento'] === 'factura' && $venta['cliente_id']) {
+        if ((isset($venta['tipo_documento']) && $venta['tipo_documento'] === 'factura') && !empty($venta['cliente_id'])) {
             $html .= '
     <div class="customer-section">
         <div class="info-label" style="margin-bottom: 10px; font-size: 14px;">Datos del Cliente:</div>
@@ -267,34 +282,34 @@ class PDFController {
             <div class="info-row">
                 <div class="info-left">
                     <span class="info-label">RUT:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['rut_empresa'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['rut_empresa']) && $venta['rut_empresa'] ? $venta['rut_empresa'] : 'N/A') . '</span>
                 </div>
                 <div class="info-right">
                     <span class="info-label">Razón Social:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['razon_social'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['razon_social']) && $venta['razon_social'] ? $venta['razon_social'] : 'N/A') . '</span>
                 </div>
             </div>
             <div class="info-row">
                 <div class="info-left">
                     <span class="info-label">Dirección:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['direccion'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['direccion']) && $venta['direccion'] ? $venta['direccion'] : 'N/A') . '</span>
                 </div>
                 <div class="info-right">
                     <span class="info-label">Teléfono:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['telefono'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['telefono']) && $venta['telefono'] ? $venta['telefono'] : 'N/A') . '</span>
                 </div>
             </div>';
             
-            if ($venta['cliente_rut'] || $venta['cliente_nombre']) {
+            if ((isset($venta['cliente_rut']) && $venta['cliente_rut']) || (isset($venta['cliente_nombre']) && $venta['cliente_nombre'])) {
                 $html .= '
             <div class="info-row">
                 <div class="info-left">
                     <span class="info-label">Contacto RUT:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['cliente_rut'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['cliente_rut']) && $venta['cliente_rut'] ? $venta['cliente_rut'] : 'N/A') . '</span>
                 </div>
                 <div class="info-right">
                     <span class="info-label">Contacto Nombre:</span> 
-                    <span class="info-value">' . htmlspecialchars($venta['cliente_nombre'] ?: 'N/A') . '</span>
+                    <span class="info-value">' . htmlspecialchars(isset($venta['cliente_nombre']) && $venta['cliente_nombre'] ? $venta['cliente_nombre'] : 'N/A') . '</span>
                 </div>
             </div>';
             }
@@ -321,11 +336,11 @@ class PDFController {
         foreach ($detalles as $detalle) {
             $html .= '
             <tr>
-                <td class="text-center">' . htmlspecialchars($detalle['producto_codigo'] ?: 'N/A') . '</td>
-                <td>' . htmlspecialchars($detalle['producto_nombre']) . '</td>
-                <td class="text-center">' . $detalle['cantidad'] . '</td>
-                <td class="text-right">$' . number_format($detalle['precio'], 2, ',', '.') . '</td>
-                <td class="text-right">$' . number_format($detalle['subtotal'], 2, ',', '.') . '</td>
+                <td class="text-center">' . htmlspecialchars(isset($detalle['producto_codigo']) && $detalle['producto_codigo'] ? $detalle['producto_codigo'] : 'N/A') . '</td>
+                <td>' . htmlspecialchars(isset($detalle['producto_nombre']) ? $detalle['producto_nombre'] : 'N/A') . '</td>
+                <td class="text-center">' . (isset($detalle['cantidad']) ? $detalle['cantidad'] : 'N/A') . '</td>
+                <td class="text-right">$' . (isset($detalle['precio']) ? number_format($detalle['precio'], 2, ',', '.') : '0,00') . '</td>
+                <td class="text-right">$' . (isset($detalle['subtotal']) ? number_format($detalle['subtotal'], 2, ',', '.') : '0,00') . '</td>
             </tr>';
         }
 
