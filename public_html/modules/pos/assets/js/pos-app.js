@@ -613,31 +613,40 @@ function completeSale() {
   }
   
   // Send to server
-  fetch('/SistemaBazar/public_html/modules/pos/ajax_handler.php', {
+  debugPOS('Enviando datos de venta al backend:', saleData);
+  fetch('./ajax_handler.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(saleData)
   })
-  .then(response => response.json())
+  .then(response => {
+    debugPOS('Respuesta HTTP recibida:', response.status, response);
+    return response.json().catch(err => {
+      debugPOS('Error parseando JSON de la respuesta:', err);
+      throw new Error('Respuesta no es JSON');
+    });
+  })
   .then(data => {
-    debugPOS('Respuesta de venta:', data);
-    
+    debugPOS('Respuesta de venta (JSON):', data);
     if (data.success) {
       alert('Venta completada exitosamente');
-      
+      debugPOS('Venta exitosa, transactionId:', data.transactionId, 'documentType:', data.documentType);
       // Descargar PDF automáticamente
       if (data.transactionId) {
+        debugPOS('Llamando a downloadSalePDF con:', data.transactionId, data.documentType);
         downloadSalePDF(data.transactionId, data.documentType);
+      } else {
+        debugPOS('No se recibió transactionId en la respuesta. No se puede descargar PDF.');
       }
-      
       newSale();
     } else {
+      debugPOS('Error reportado por backend al completar venta:', data.message || data);
       alert('Error al completar la venta: ' + (data.message || 'Error desconocido'));
     }
   })
   .catch(error => {
-    debugPOS('Error al completar venta:', error);
-    alert('Error al procesar la venta');
+    debugPOS('Error en el proceso de completar venta:', error);
+    alert('Error al procesar la venta: ' + (error.message || error));
   });
 }
 
@@ -676,27 +685,26 @@ function newSale() {
 // Función para descargar el PDF de la venta
 function downloadSalePDF(ventaId, documentType) {
   try {
-    debugPOS('Descargando PDF para venta:', ventaId);
-    
+    debugPOS('Iniciando descarga de PDF para venta:', { ventaId, documentType });
+    // Construir la URL del PDF
+    const pdfUrl = `../pdf_controller.php?venta_id=${ventaId}`;
+    debugPOS('URL de descarga del PDF:', pdfUrl);
     // Crear un enlace temporal para la descarga
     const link = document.createElement('a');
-    link.href = `../pdf_controller.php?venta_id=${ventaId}`;
+    link.href = pdfUrl;
     link.download = `${documentType}_${ventaId}.pdf`;
     link.target = '_blank';
-    
     // Agregar al DOM temporalmente
     document.body.appendChild(link);
-    
     // Hacer clic en el enlace para iniciar la descarga
+    debugPOS('Simulando click en el enlace para descargar PDF...');
     link.click();
-    
     // Remover el enlace del DOM después de un pequeño delay
     setTimeout(() => {
       document.body.removeChild(link);
+      debugPOS('Enlace temporal para PDF removido del DOM');
     }, 100);
-    
-    debugPOS('PDF descargado exitosamente');
-    
+    debugPOS('Solicitud de descarga de PDF enviada. Si hay problemas, revisar el backend (DOMPDF) y la URL.');
   } catch (error) {
     console.error('Error al descargar PDF:', error);
     debugPOS('Error en downloadSalePDF:', error);
