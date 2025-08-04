@@ -315,8 +315,9 @@ require_once '../includes/funciones.php'; // CSRF helpers
         <button type="submit" class="btn btn-primary w-100">Ingresar</button>
     </form>
 
+    
         <div class="text-center mt-3">
-            <a href="register.php" class="register-link">¿No tienes cuenta? Regístrate</a>
+    <!--   <a href="register.php" class="register-link">¿No tienes cuenta? Regístrate</a> -->
         </div>
     </div>
 </div>
