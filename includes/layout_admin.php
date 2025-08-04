@@ -257,13 +257,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     .main-content {
-      flex-grow: 1 !important;
-      background: var(--bg-primary) !important;
-      min-height: 100vh !important;
-      position: relative !important;
-      margin-left: var(--sidebar-width) !important;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-      width: calc(100% - var(--sidebar-width)) !important;
+      flex-grow: 1;
+      background: var(--bg-primary);
+      min-height: 100vh;
+      position: relative;
+      margin-left: var(--sidebar-width);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      width: calc(100% - var(--sidebar-width));
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
     .main-content.expanded {
@@ -283,8 +286,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
       padding: 10px !important;
       cursor: pointer !important;
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-      display: block !important;
+      display: none !important;
       box-shadow: var(--shadow) !important;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-toggle {
+        display: block !important;
+      }
     }
 
     .sidebar-toggle.collapsed {
@@ -299,29 +308,35 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     .content-wrapper {
       padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
+      max-width: 900px;
+      width: 100%;
+      margin: 2rem auto;
       min-height: calc(100vh - 4rem);
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
     }
 
     /* Responsive Design */
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
+    @media (max-width: 1200px) {
+      .content-wrapper {
+        max-width: 100%;
+        padding: 2rem 1rem;
       }
+    }
 
-      .sidebar.show {
-        transform: translateX(0);
-      }
-
+    @media (max-width: 992px) {
       .main-content {
         margin-left: 0;
         width: 100%;
+        justify-content: flex-start;
+        align-items: stretch;
       }
-
       .content-wrapper {
-        padding: 4rem 1rem 1rem;
+        max-width: 100%;
+        padding: 1rem;
+        margin: 1rem 0;
       }
     }
 
@@ -329,18 +344,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
       .sidebar {
         transform: translateX(-100%);
       }
-
       .sidebar.show {
         transform: translateX(0);
       }
-
       .main-content {
         margin-left: 0;
         width: 100%;
+        justify-content: flex-start;
+        align-items: stretch;
       }
-
       .content-wrapper {
-        padding: 4rem 1rem 1rem;
+        max-width: 100%;
+        padding: 1rem;
+        margin: 1rem 0;
       }
     }
 
@@ -496,121 +512,29 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 </div>
 
-<!-- Inicio del contenido -->
-<div class="main-content" id="mainContent">
-  <div class="content-wrapper">
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('mainContent');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const themeToggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    let sidebarVisible = window.innerWidth > 768;
-
-    // Inicializar posición del botón toggle
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+  function toggleSidebar() {
     if (window.innerWidth <= 768) {
-        sidebarToggle.classList.add('collapsed');
+      sidebar.classList.toggle('show');
     }
-
-    // Theme management
-    const currentTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    updateThemeIcon(currentTheme);
-
-    function updateThemeIcon(theme) {
-        if (theme === 'light') {
-            themeIcon.className = 'bi bi-sun-fill';
-        } else {
-            themeIcon.className = 'bi bi-moon-fill';
-        }
-    }
-
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateThemeIcon(newTheme);
-        
-        // Add smooth transition effect
-        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-        setTimeout(() => {
-            document.body.style.transition = '';
-        }, 300);
-    }
-
-    // Toggle sidebar
-    function toggleSidebar() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('show');
-        } else {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            sidebarToggle.classList.toggle('collapsed');
-            
-            // Debug: verificar que las clases se están aplicando
-            console.log('Sidebar collapsed:', sidebar.classList.contains('collapsed'));
-            console.log('MainContent expanded:', mainContent.classList.contains('expanded'));
-            
-            const icon = sidebarToggle.querySelector('i');
-            if (sidebar.classList.contains('collapsed')) {
-                icon.className = 'bi bi-arrow-right';
-            } else {
-                icon.className = 'bi bi-list';
-            }
-        }
-    }
-
-    // Event listeners
+  }
+  if (sidebarToggle) {
     sidebarToggle.addEventListener('click', toggleSidebar);
-    themeToggle.addEventListener('click', toggleTheme);
-
-    // Close sidebar on mobile when clicking outside
-    document.addEventListener('click', function(e) {
-        if (window.innerWidth <= 768) {
-            if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                sidebar.classList.remove('show');
-            }
-        }
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        const newWidth = window.innerWidth;
-        
-        if (newWidth > 768 && !sidebarVisible) {
-            sidebar.classList.remove('show');
-            sidebar.classList.remove('collapsed');
-            mainContent.classList.remove('expanded');
-            sidebarToggle.classList.remove('collapsed');
-            sidebarVisible = true;
-        } else if (newWidth <= 768 && sidebarVisible) {
-            sidebar.classList.remove('collapsed', 'show');
-            mainContent.classList.remove('expanded');
-            sidebarToggle.classList.add('collapsed');
-            sidebarVisible = false;
-        }
-    });
-
-    // Smooth hover effects for nav links
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('active')) {
-                this.style.transform = 'translateX(4px)';
-            }
-        });
-        
-        link.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('active')) {
-                this.style.transform = 'translateX(0)';
-            }
-        });
-    });
+  }
+  // Ocultar sidebar al hacer clic fuera en móvil
+  document.addEventListener('click', function(e) {
+    if (window.innerWidth <= 768 && sidebar.classList.contains('show')) {
+      if (!sidebar.contains(e.target) && e.target !== sidebarToggle) {
+        sidebar.classList.remove('show');
+      }
+    }
+  });
 });
+</script>
 </script>
 </div>
 </div>

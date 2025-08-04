@@ -51,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->execute([$usuario_id, $monto_inicial, $observaciones])) {
                     $success = "Caja abierta exitosamente";
                 } else {
-                    $error = "Error al abrir caja: " . $conn->error;
+                    $errorInfo = $stmt->errorInfo();
+                    $error = "Error al abrir caja: " . ($errorInfo[2] ?? 'Error desconocido');
                 }
             }
             break;
@@ -75,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute([$monto_final, $totalVentas, $observaciones, $fechaCierre, $sesion_id])) {
                 $success = "Caja cerrada exitosamente";
             } else {
-                $error = "Error al cerrar caja: " . $conn->error;
+                $errorInfo = $stmt->errorInfo();
+                $error = "Error al cerrar caja: " . ($errorInfo[2] ?? 'Error desconocido');
             }
             break;
     }
@@ -143,7 +145,36 @@ $sesionesDelDia = $conn->query($sesionesDelDiaQuery)->fetch(PDO::FETCH_ASSOC);
 
 <style>
 .caja-container {
-    padding: 0;
+  padding: 2.5rem 2rem 2rem 2rem;
+  margin-left: var(--sidebar-width, 260px);
+  max-width: 1400px;
+  width: calc(100% - var(--sidebar-width, 260px));
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: transparent;
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@media (max-width: 1200px) {
+  .caja-container {
+    max-width: 100%;
+    padding: 2rem 1rem 1rem 1rem;
+    width: 100%;
+  }
+}
+@media (max-width: 992px) {
+  .caja-container {
+    margin-left: 0;
+    width: 100%;
+    padding: 1.5rem 0.5rem 1rem 0.5rem;
+  }
+}
+@media (max-width: 768px) {
+  .caja-container {
+    margin-left: 0;
+    padding: 1rem 0.5rem;
+    width: 100%;
+  }
 }
 
 .caja-header {

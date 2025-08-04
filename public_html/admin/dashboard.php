@@ -132,9 +132,68 @@ $datosGraficas = obtenerDatosGraficas($conn);
 
 <style>
 /* Dashboard moderno y minimalista */
+/* Contenedor principal del dashboard y todos los paneles admin */
 .dashboard-container {
-    padding: 0;
-    background: transparent;
+  padding: 2.5rem 2rem 2rem 2rem;
+  margin-left: var(--sidebar-width, 260px); /* Fallback si no está definido */
+  max-width: 1400px;
+  width: calc(100% - var(--sidebar-width, 260px));
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: transparent;
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Para todos los paneles admin que usan el mismo layout */
+.admin-panel-container, .productos-container, .ventas-container, .reportes-container, .historial-container, .seguridad-container {
+  padding: 2.5rem 2rem 2rem 2rem;
+  margin-left: var(--sidebar-width, 260px);
+  max-width: 1400px;
+  width: calc(100% - var(--sidebar-width, 260px));
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: transparent;
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@media (max-width: 1200px) {
+  .dashboard-container,
+  .admin-panel-container,
+  .productos-container,
+  .ventas-container,
+  .reportes-container,
+  .historial-container,
+  .seguridad-container {
+    max-width: 100%;
+    padding: 2rem 1rem 1rem 1rem;
+    width: 100%;
+  }
+}
+@media (max-width: 992px) {
+  .dashboard-container,
+  .admin-panel-container,
+  .productos-container,
+  .ventas-container,
+  .reportes-container,
+  .historial-container,
+  .seguridad-container {
+    margin-left: 0;
+    padding: 1rem;
+    width: 100%;
+  }
+}
+@media (max-width: 768px) {
+  .dashboard-container,
+  .admin-panel-container,
+  .productos-container,
+  .ventas-container,
+  .reportes-container,
+  .historial-container,
+  .seguridad-container {
+    margin-left: 0;
+    padding: 1rem 0.5rem;
+    width: 100%;
+  }
 }
 
 .dashboard-header {
@@ -756,32 +815,20 @@ $datosGraficas = obtenerDatosGraficas($conn);
 
 /* Mejoras responsive para notificaciones */
 @media (max-width: 768px) {
-    .notification {
-        min-width: calc(100vw - 40px);
-        max-width: calc(100vw - 40px);
-        right: 20px;
-        left: 20px;
-        transform: translateY(-100%);
-    }
-    
-    @keyframes slideInNotification {
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    
-    .notification-content {
-        padding: 1rem;
-    }
-}
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+  .notification {
+    min-width: calc(100vw - 40px);
+    max-width: calc(100vw - 40px);
+    right: 20px;
+    left: 20px;
+    transform: translateY(-100%);
+  }
+  .notification-content {
+    padding: 1rem;
+  }
 
-.animate-up {
+    .animate-up {
     animation: fadeInUp 0.4s ease-out forwards;
+    }
 }
 
 /* Loading spinner minimalista */

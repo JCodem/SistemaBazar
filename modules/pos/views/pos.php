@@ -360,20 +360,41 @@ if (isset($_SESSION['user_nombre'])) {
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
-      .container-fluid {
-        padding: 1rem;
-      }
-      
-      .pos-card {
-        margin-bottom: 1.5rem;
-      }
-      
-      .pos-btn-lg {
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-      }
+  /* Centrado y responsividad del contenedor principal */
+  .container-fluid {
+    max-width: 1200px;
+    margin: 0 auto;
+    border-radius: 12px;
+    box-shadow: var(--shadow-light);
+    padding: 2rem 1rem;
+    background: var(--secondary-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 80vh;
+  }
+  @media (max-width: 992px) {
+    .container-fluid {
+      max-width: 98vw;
+      padding: 1rem 0.5rem;
+      border-radius: 0;
+      box-shadow: none;
     }
+  }
+  @media (max-width: 768px) {
+    .container-fluid {
+      max-width: 100vw;
+      padding: 0.5rem 0.2rem;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .pos-card {
+      margin-bottom: 1.5rem;
+    }
+    .pos-btn-lg {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+    }
+  }
   </style>
 
 
@@ -621,8 +642,10 @@ if (isset($_SESSION['user_nombre'])) {
   </div>
 
   <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
+  <script src="../assets/js/pos.js"></script>
+  <script src="../assets/js/payment-handler.js"></script>
   <script>
     // Variables globales
     let cart = [];
@@ -677,67 +700,7 @@ if (isset($_SESSION['user_nombre'])) {
       debugPOS('POS inicializado correctamente');
     });
 
-<!-- Scripts JS -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../assets/js/pos.js"></script>
-<script src="../assets/js/payment-handler.js"></script>
-
-
-      // Botón limpiar carrito
-      const clearCartBtn = document.getElementById('clear-cart');
-      if (clearCartBtn) {
-        clearCartBtn.addEventListener('click', clearCart);
-        debugPOS('Event listener para limpiar carrito configurado');
-      }
-
-      // Botón pago exacto
-      const quickPaymentBtn = document.getElementById('quick-payment');
-      if (quickPaymentBtn) {
-        quickPaymentBtn.addEventListener('click', setExactPayment);
-        debugPOS('Event listener para pago exacto configurado');
-      }
-
-      // Campo monto recibido
-      const amountReceived = document.getElementById('amount-received');
-      if (amountReceived) {
-        amountReceived.addEventListener('input', calculateChange);
-        debugPOS('Event listener para cálculo de cambio configurado');
-      }
-
-      // Métodos de pago
-      const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
-      paymentMethods.forEach(radio => {
-        radio.addEventListener('change', handlePaymentMethodChange);
-      });
-      debugPOS('Event listeners para métodos de pago configurados');
-
-      // Botón completar venta
-      const completeSaleBtn = document.getElementById('complete-sale');
-      if (completeSaleBtn) {
-        completeSaleBtn.addEventListener('click', completeSale);
-        debugPOS('Event listener para completar venta configurado');
-      }
-
-      // Botón nueva venta
-      const newSaleBtn = document.getElementById('new-sale');
-      if (newSaleBtn) {
-        newSaleBtn.addEventListener('click', newSale);
-        debugPOS('Event listener para nueva venta configurado');
-      }
-
-      // Cerrar dropdown al hacer clic fuera
-      document.addEventListener('click', function(e) {
-        const searchInput = document.getElementById('product-search');
-        const searchDropdown = document.getElementById('search-dropdown');
-        
-        if (searchInput && searchDropdown && 
-            !searchInput.contains(e.target) && 
-            !searchDropdown.contains(e.target)) {
-          searchDropdown.style.display = 'none';
-        }
-      });
-    }
+      // ...existing code inside DOMContentLoaded...
 
     // Función de búsqueda inteligente
     function handleSmartSearch() {

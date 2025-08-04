@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras])) {
                     $success = "Producto creado exitosamente";
                 } else {
-                    $error = "Error al crear producto: " . $conn->error;
+                    $errorInfo = $stmt->errorInfo();
+                    $error = "Error al crear producto: " . ($errorInfo[2] ?? 'Error desconocido');
                 }
             } else {
                 $error = "Todos los campos obligatorios deben ser completados";
@@ -42,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->execute([$nombre, $precio, $stock, $sku, $codigo_barras, $id])) {
                     $success = "Producto actualizado exitosamente";
                 } else {
-                    $error = "Error al actualizar producto: " . $conn->error;
+                    $errorInfo = $stmt->errorInfo();
+                    $error = "Error al actualizar producto: " . ($errorInfo[2] ?? 'Error desconocido');
                 }
             }
             break;
@@ -54,7 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->execute([$id])) {
                     $success = "Producto eliminado exitosamente";
                 } else {
-                    $error = "Error al eliminar producto: " . $conn->error;
+                    $errorInfo = $stmt->errorInfo();
+                    $error = "Error al eliminar producto: " . ($errorInfo[2] ?? 'Error desconocido');
                 }
             }
             break;
@@ -235,7 +238,14 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 <style>
 /* Página de productos - Compatible con tema claro/oscuro */
 .productos-container {
-    padding: 0;
+    padding: 2.5rem 2rem 2rem 2rem;
+    margin-left: var(--sidebar-width, 260px);
+    max-width: 1400px;
+    width: calc(100% - var(--sidebar-width, 260px));
+    box-sizing: border-box;
+    min-height: 100vh;
+    background: transparent;
+    transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .productos-header {
@@ -935,44 +945,57 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .productos-container {
+    max-width: 100%;
+    padding: 2rem 1rem 1rem 1rem;
+    width: 100%;
+  }
+}
+@media (max-width: 992px) {
+  .productos-container {
+    margin-left: 0;
+    width: 100%;
+    padding: 1.5rem 0.5rem 1rem 0.5rem;
+  }
+}
 @media (max-width: 768px) {
-    .productos-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1.5rem;
-    }
-    
-    .search-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .search-input, .filter-select {
-        min-width: auto;
-        width: 100%;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .products-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .table-container {
-        padding: 1rem;
-    }
-    
-    .modal-content {
-        margin: 10% auto;
-        width: 95%;
-        padding: 1.5rem;
-    }
-    
-    .product-info {
-        grid-template-columns: 1fr;
-    }
+  .productos-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+  .search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-input, .filter-select {
+    min-width: auto;
+    width: 100%;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  .table-container {
+    padding: 1rem;
+  }
+  .modal-content {
+    margin: 10% auto;
+    width: 95%;
+    padding: 1.5rem;
+  }
+  .product-info {
+    grid-template-columns: 1fr;
+  }
+  .productos-container {
+    margin-left: 0;
+    width: 100vw;
+    padding: 1rem 0.2rem 1rem 0.2rem;
+    max-width: 100vw;
+  }
 }
 
 @media (max-width: 480px) {

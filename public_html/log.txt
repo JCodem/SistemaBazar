@@ -29,3 +29,7 @@
 [2025-07-19 17:16:36] [::1] REDIRECT: Usuario con rol 'vendedor' será enviado a vendedor/dashboard.php
 [2025-07-19 17:19:03] [::1] LOGIN OK: Usuario ID 3 (javier@bazar.com) - Rol: jefe - SESSION: {"csrf_token":"d8b4d48082ce7d1e06a761b512800cf2305161fc24a645d80d742c6a829fbc84","user_id":"3","user_nombre":"Javier Monsalves","user_rol":"jefe"}
 [2025-07-19 17:19:03] [::1] REDIRECT: Usuario con rol 'jefe' será enviado a admin/dashboard.php
+[2025-08-04 19:49:13] [::1] LOGIN OK: Usuario ID 3 (javier@bazar.com) - Rol: jefe - SESSION: {"csrf_token":"bc6e754fcc1a63a5f1550282b8007d0bd0a15007539ad3c1ef7efe7e13c3a468","user_id":"3","user_nombre":"Javier Monsalves","user_rol":"jefe"}
+[2025-08-04 19:49:13] [::1] REDIRECT: Usuario con rol 'jefe' será enviado a admin/dashboard.php
+[2025-08-04 21:57:40] [::1] LOGIN OK: Usuario ID 3 (javier@bazar.com) - Rol: jefe - SESSION: {"csrf_token":"32932f70a09722990e90e2e0c206c3928e48b8845d506ae8299fe77b094459dc","user_id":"3","user_nombre":"Javier Monsalves","user_rol":"jefe"}
+[2025-08-04 21:57:40] [::1] REDIRECT: Usuario con rol 'jefe' será enviado a admin/dashboard.php
