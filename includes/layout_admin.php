@@ -94,20 +94,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       background-color: var(--bg-primary);
       color: var(--text-primary);
       transition: var(--transition);
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      box-sizing: border-box !important;
-      overflow-x: hidden !important;
-      display: flex !important;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      min-height: 100vh !important;
     }
 
     .sidebar {
@@ -626,3 +612,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+</div>
+</div>
+
+
+
+
