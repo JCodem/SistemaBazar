@@ -689,9 +689,9 @@ function newSale() {
 function downloadSalePDF(ventaId, documentType) {
   try {
     debugPOS('Iniciando descarga de PDF para venta:', { ventaId, documentType });
-    // Construir la URL absoluta del PDF para producción
-    const pdfUrl = 'https://lightyellow-eagle-863326.hostingersite.com/modules/pos/pdf_controller.php?venta_id=' + ventaId;
-    debugPOS('URL de descarga del PDF (absoluta producción):', pdfUrl);
+    // Construir la URL del PDF (relativa al módulo actual)
+    const pdfUrl = 'pdf_controller.php?venta_id=' + ventaId;
+    debugPOS('URL de descarga del PDF (relativa):', pdfUrl);
     // Crear un enlace temporal para la descarga
     const link = document.createElement('a');
     link.href = pdfUrl;
