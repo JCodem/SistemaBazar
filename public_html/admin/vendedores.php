@@ -354,7 +354,10 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 .user-header {
     display: flex;
     align-items: center;
+    gap: 1rem;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .user-avatar {
@@ -370,6 +373,9 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
     color: white;
     margin-right: 1rem;
     border: 2px solid rgba(255, 255, 255, 0.2);
+    min-width: 60px;
+    min-height: 60px;
+    overflow: hidden;
 }
 
 .user-info h3 {
@@ -377,6 +383,8 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.25rem 0;
+    word-break: break-word;
+    max-width: 180px;
 }
 
 .user-role {

@@ -122,6 +122,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
       padding: 2rem 1.5rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      word-break: break-word;
+      text-align: center;
     }
 
     .user-avatar {
@@ -129,7 +136,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       height: 64px;
       background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       border-radius: 16px;
-      margin: 0 auto 1rem;
+      margin: 0 0 1rem 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -138,6 +145,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
       color: white;
       position: relative;
       overflow: hidden;
+      min-width: 64px;
+      min-height: 64px;
     }
 
     .user-name {
@@ -146,6 +155,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
       margin: 0;
       color: var(--text-primary);
       text-align: center;
+      word-break: break-word;
+      max-width: 180px;
     }
 
     .user-role {
@@ -153,6 +164,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       color: var(--text-muted);
       margin-top: 0.25rem;
       text-align: center;
+      word-break: break-word;
     }
 
     .theme-toggle {
@@ -346,6 +358,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
       }
       .sidebar.show {
         transform: translateX(0);
+      }
+      .sidebar-header {
+        padding: 1.5rem 0.5rem 1rem 0.5rem;
+      }
+      .user-avatar {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+      .user-name {
+        font-size: 1rem;
+        max-width: 120px;
+      }
+      .user-role {
+        font-size: 0.8rem;
+        max-width: 120px;
       }
       .main-content {
         margin-left: 0;
