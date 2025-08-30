@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 session_start();
-require_once __DIR__ . '/../includes/db.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/db.php';
 $correo = $_POST['correo'] ?? '';
 $contraseña = $_POST['contrasena'] ?? ''; // Mantener 'contraseña' con tilde como en el formulario
 
