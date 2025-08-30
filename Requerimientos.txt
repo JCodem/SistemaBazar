@@ -1,0 +1,54 @@
+# Simulación de Entrevistas para Levantamiento de Requerimientos
+
+Entrevista 1: Administrador del Negocio
+Pregunta: ¿Cuáles son las tareas más importantes que realiza diariamente?
+Respuesta: Consulto reportes de ventas, reviso el inventario y gestiono los usuarios del sistema.
+Pregunta: ¿Qué información considera crítica para la toma de decisiones?
+Respuesta: Estadísticas de ventas, productos más vendidos y movimientos de caja.
+
+Entrevista 2: Vendedor
+Pregunta: ¿Qué espera del sistema al momento de realizar una venta?
+Respuesta: Que sea rápido, fácil de usar y que genere el comprobante de venta automáticamente.
+Pregunta: ¿Ha tenido problemas con sistemas anteriores?
+Respuesta: Sí, eran lentos y complicados, lo que hacía perder tiempo con los clientes.
+
+Entrevista 3: Encargado de Inventario
+Pregunta: ¿Cómo gestiona actualmente el stock de productos?
+Respuesta: Actualizo el inventario manualmente y necesito que el sistema me ayude a evitar errores.
+Pregunta: ¿Qué funcionalidades le facilitarían su trabajo?
+Respuesta: Alertas de bajo stock y reportes automáticos de productos faltantes.
+
+Entrevista 4: Usuario General
+Pregunta: ¿Qué importancia tiene la seguridad en el sistema?
+Respuesta: Es fundamental, quiero que mis datos estén protegidos y que solo pueda acceder a lo que me corresponde.
+
+Entrevista 5: Administrador
+Pregunta: ¿Qué espera del sistema en cuanto a escalabilidad?
+Respuesta: Que pueda crecer junto con el negocio y soportar más usuarios y transacciones sin problemas.
+# Requerimientos del Sistema Prisma-pos
+
+## Requerimientos Funcionales
+1. El sistema debe permitir la gestión de ventas en tiempo real, incluyendo la creación, edición y cancelación de transacciones.
+2. El sistema debe permitir la gestión de productos, incluyendo alta, baja, modificación y consulta de inventario.
+3. El sistema debe permitir la generación de reportes de ventas diarios, semanales y mensuales.
+4. El sistema debe permitir la gestión de usuarios con diferentes roles (administrador, vendedor, etc.).
+5. El sistema debe permitir la apertura y cierre de caja, registrando los movimientos de efectivo.
+6. El sistema debe permitir la emisión de comprobantes de venta (boletas/facturas) en formato PDF.
+7. El sistema debe permitir la consulta de historial de ventas y actividades por usuario.
+8. El sistema debe permitir la autenticación segura de usuarios mediante login y logout.
+
+## Requerimientos No Funcionales
+9. El sistema debe ser accesible desde dispositivos móviles y de escritorio (diseño responsivo).
+10. El sistema debe almacenar los datos en una base de datos MySQL y garantizar la integridad de la información.
+11. El sistema debe contar con mecanismos de respaldo y recuperación de datos.
+12. El sistema debe ofrecer tiempos de respuesta inferiores a 2 segundos en operaciones críticas.
+13. El sistema debe proteger los datos sensibles mediante cifrado y buenas prácticas de seguridad.
+14. El sistema debe ser fácil de usar, con una interfaz intuitiva y amigable para el usuario final.
+15. El sistema debe permitir la escalabilidad para soportar crecimiento en número de usuarios y transacciones.
+
+# Historias de Usuario
+1. Como vendedor, quiero registrar una venta de forma rápida y sencilla para atender a los clientes sin demoras.
+2. Como administrador, quiero consultar reportes de ventas para analizar el desempeño del negocio y tomar decisiones.
+3. Como usuario, quiero iniciar sesión de manera segura para proteger mi información y acceder solo a mis funciones.
+4. Como encargado de inventario, quiero actualizar el stock de productos para mantener la información siempre actualizada.
+5. Como administrador, quiero gestionar los usuarios y sus permisos para controlar el acceso a las diferentes áreas del sistema.
