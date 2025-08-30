@@ -253,7 +253,7 @@
 
   <section class="hero-section" id="hero">
     <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=800&q=80" alt="POS moderno" class="hero-img" />
-    <div class="hero-title">Sistema Bazar POS</div>
+    <div class="hero-title">PRISMA POS </div>
     <div class="hero-subtitle">Gestiona tu negocio con estilo, rapidez y seguridad.</div>
     <a href="login.php" class="btn-cta">¡Probar Ahora!</a>
   </section>
